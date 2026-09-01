@@ -1,4 +1,4 @@
-﻿/* ===================================
+/* ===================================
    TOEIC 0→700 ROADMAP — STYLE SHEET
    =================================== */
 
@@ -334,8 +334,35 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
   text-overflow: ellipsis;
   margin-top: 2px;
 }
+/* ---- Day header sub-progress ---- */
+.day-sub-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 70px;
+}
+.day-sub-bar-track {
+  flex: 1;
+  height: 4px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 50px;
+  overflow: hidden;
+}
+.day-sub-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #34d399);
+  border-radius: 50px;
+  transition: width 0.4s ease;
+}
+.day-sub-count {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* ---- Main done checkbox ---- */
 .done-checkbox {
-  width: 22px; height: 22px;
+  width: 26px; height: 26px;
   border-radius: 50%;
   border: 2px solid rgba(255,255,255,0.2);
   background: transparent;
@@ -344,11 +371,15 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
   transition: all var(--transition);
   flex-shrink: 0;
   font-size: 0.85rem;
+  color: white;
 }
-.done-checkbox.checked { background: var(--green); border-color: var(--green); }
+.done-checkbox.checked { background: var(--green); border-color: var(--green); color: white; }
+.done-checkbox.ready   { border-color: var(--green); color: var(--green); }
+.done-checkbox.locked  { opacity: 0.35; cursor: not-allowed; }
 .day-expand-icon { color: var(--text-dim); font-size: 0.7rem; transition: transform 0.3s; flex-shrink: 0; }
 .day-expand-icon.open { transform: rotate(180deg); }
 
+/* ---- Day body ---- */
 .day-body {
   display: none;
   padding: 0 18px 16px;
@@ -356,6 +387,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 }
 .day-body.open { display: block; }
 
+/* ---- Detail grid ---- */
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -367,13 +399,25 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: 8px;
   padding: 10px 14px;
+  transition: all var(--transition);
+}
+.detail-item.sub-done {
+  background: rgba(16,185,129,0.07);
+  border-color: rgba(16,185,129,0.25);
+}
+.detail-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 .detail-label {
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  margin-bottom: 4px;
+  margin-bottom: 0;
 }
 .detail-value { font-size: 0.83rem; color: var(--text-muted); line-height: 1.5; }
 .label-ipa { color: #38bdf8; }
@@ -384,6 +428,69 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .label-routine { color: #fb923c; }
 .label-review { color: #a5f3fc; }
 
+/* ---- Sub-task checkbox ---- */
+.sub-checkbox {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.18);
+  background: transparent;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.72rem;
+  color: white;
+  font-weight: 700;
+  transition: all var(--transition);
+  flex-shrink: 0;
+  font-family: inherit;
+  padding: 0;
+  line-height: 1;
+}
+.sub-checkbox:hover { border-color: var(--green); color: var(--green); transform: scale(1.1); }
+.sub-checkbox.checked { background: var(--green); border-color: var(--green); color: white; }
+
+/* ---- Day complete row ---- */
+.day-complete-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+.complete-hint {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.btn-complete-day {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border: none;
+  color: white;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.btn-complete-day:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.4); }
+.btn-complete-day.done { background: linear-gradient(135deg, #059669, #10b981); }
+.btn-complete-day.locked, .btn-complete-day:disabled {
+  background: rgba(255,255,255,0.07);
+  color: var(--text-dim);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.btn-complete-day.shake {
+  animation: shake 0.4s ease;
+}
+
+/* ---- Routine chip ---- */
 .routine-chip {
   display: inline-block;
   background: rgba(249,115,22,0.12);
@@ -551,6 +658,13 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes fadeInDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: none; } }
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-6px); }
+  40%       { transform: translateX(6px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
 
 /* ========== RESPONSIVE ========== */
 @media (max-width: 640px) {

@@ -8,14 +8,27 @@ js_data = json.dumps(data, ensure_ascii=False)
 
 js_code = r"""// ===================================================
 // TOEIC 0→700 ROADMAP — APP.JS
-// Data embedded from Lo_trinh_TOEIC_0_700_6_thang.xlsx
+// Sub-task checkboxes: must complete all before marking day done
 // ===================================================
 
 const DATA = """ + js_data + r""";
 
+// Sub-tasks definition per day
+const SUB_TASKS = ['ipa', 'grammar', 'vocab', 'listening', 'books', 'review'];
+const SUB_TASK_LABELS = {
+  ipa:       { icon: '🔊', label: 'IPA / Phát âm',  cls: 'label-ipa' },
+  grammar:   { icon: '📖', label: 'Grammar',         cls: 'label-grammar' },
+  vocab:     { icon: '📚', label: 'Vocabulary',      cls: 'label-vocab' },
+  listening: { icon: '🎧', label: 'Listening',       cls: 'label-listening' },
+  books:     { icon: '📕', label: 'Sách luyện',      cls: 'label-books' },
+  review:    { icon: '🔁', label: 'Ôn tập',          cls: 'label-review' },
+};
+
 // ===== STATE =====
+// checkedDays[day] = true  → toàn bộ ngày đã hoàn thành
+// subChecked[day][task] = true → từng sub-task của ngày đó
 let checkedDays = JSON.parse(localStorage.getItem('toeic_done') || '{}');
-let currentTab = 'roadmap';
+let subChecked  = JSON.parse(localStorage.getItem('toeic_sub')  || '{}');
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
@@ -30,7 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ===== TAB =====
 function switchTab(tab) {
-  currentTab = tab;
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('panel-' + tab).classList.add('active');
@@ -79,7 +91,6 @@ function renderRoadmap(days) {
     container.innerHTML = '<div class="no-results"><div class="no-results-icon">🔍</div><div class="no-results-text">Không tìm thấy kết quả phù hợp.</div></div>';
     return;
   }
-  // Group by week
   const groups = {};
   days.forEach(d => {
     if (!groups[d.week]) groups[d.week] = [];
@@ -133,19 +144,39 @@ function toggleWeek(week) {
   }
 }
 
+// ===== BUILD DAY CARD =====
 function buildDayCard(d) {
   const isDone = !!checkedDays[d.day];
   const isReview = d.review && d.review.includes('Tổng');
+  const sub = subChecked[d.day] || {};
 
-  const card = document.createElement('div');
-  card.className = 'day-card' + (isDone ? ' is-done' : '') + (isReview ? ' is-review' : '');
-  card.id = 'day-card-' + d.day;
-
+  // count valid sub-tasks (skip '—' content)
   const books = [
     d.hackers !== '—' ? 'Hackers (' + d.hackers + ')' : '',
     d.ybm !== '—' ? 'YBM (' + d.ybm + ')' : '',
     d.ets !== '—' ? 'ETS: ' + d.ets : ''
   ].filter(Boolean).join(' | ') || '—';
+
+  const subValues = {
+    ipa: d.ipa || '—',
+    grammar: d.grammar || '—',
+    vocab: d.vocab || '—',
+    listening: d.listening || '—',
+    books: books,
+    review: d.review || '—',
+  };
+
+  // count sub tasks that have real content (not '—')
+  const totalSubs = SUB_TASKS.filter(k => subValues[k] !== '—').length;
+  const doneSubs  = SUB_TASKS.filter(k => subValues[k] !== '—' && sub[k]).length;
+  const allSubsDone = totalSubs > 0 && doneSubs === totalSubs;
+
+  const card = document.createElement('div');
+  card.className = 'day-card' + (isDone ? ' is-done' : '') + (isReview ? ' is-review' : '');
+  card.id = 'day-card-' + d.day;
+
+  // sub-progress bar text
+  const subPct = totalSubs > 0 ? Math.round(doneSubs/totalSubs*100) : 0;
 
   card.innerHTML = `
     <div class="day-header" onclick="toggleDay(${d.day})">
@@ -154,61 +185,201 @@ function buildDayCard(d) {
         <div class="day-grammar-tag">${escHtml(d.grammar || '')}</div>
         <div class="day-vocab-tag">${escHtml(d.vocab || '')}</div>
       </div>
-      <div class="done-checkbox ${isDone ? 'checked' : ''}" id="cb-${d.day}" onclick="toggleDone(event,${d.day})">${isDone ? '✓' : ''}</div>
+      <div class="day-sub-progress" id="subprog-${d.day}">
+        <div class="day-sub-bar-track"><div class="day-sub-bar-fill" style="width:${subPct}%"></div></div>
+        <span class="day-sub-count">${doneSubs}/${totalSubs}</span>
+      </div>
+      <div class="done-checkbox ${isDone ? 'checked' : ''} ${!allSubsDone && !isDone ? 'locked' : ''}"
+           id="cb-${d.day}"
+           onclick="toggleDone(event,${d.day})"
+           title="${!allSubsDone && !isDone ? 'Hoàn thành tất cả nhiệm vụ con trước!' : (isDone ? 'Bỏ đánh dấu' : 'Đánh dấu hoàn thành')}">
+        ${isDone ? '✓' : (allSubsDone ? '✓' : '')}
+      </div>
       <span class="day-expand-icon" id="exp-${d.day}">▼</span>
     </div>
     <div class="day-body" id="body-${d.day}">
       <div class="detail-grid">
-        <div class="detail-item">
-          <div class="detail-label label-ipa">🔊 IPA / Phát âm</div>
-          <div class="detail-value">${escHtml(d.ipa || '—')}</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-label label-grammar">📖 Grammar</div>
-          <div class="detail-value">${escHtml(d.grammar || '—')}</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-label label-vocab">📚 Vocabulary</div>
-          <div class="detail-value">${escHtml(d.vocab || '—')}</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-label label-listening">🎧 Listening</div>
-          <div class="detail-value">${escHtml(d.listening || '—')}</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-label label-books">📕 Sách luyện</div>
-          <div class="detail-value">${escHtml(books)}</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-label label-review">🔁 Ôn tập</div>
-          <div class="detail-value">${escHtml(d.review || '—')}</div>
-        </div>
+        ${SUB_TASKS.map(key => {
+          const val = subValues[key];
+          const info = SUB_TASK_LABELS[key];
+          const hasContent = val !== '—';
+          const checked = hasContent && !!sub[key];
+          return `
+          <div class="detail-item ${checked ? 'sub-done' : ''}" id="detail-${d.day}-${key}">
+            <div class="detail-item-top">
+              <div class="detail-label ${info.cls}">${info.icon} ${info.label}</div>
+              ${hasContent ? `
+              <button class="sub-checkbox ${checked ? 'checked' : ''}"
+                      id="scb-${d.day}-${key}"
+                      onclick="toggleSub(event,${d.day},'${key}')"
+                      title="${checked ? 'Bỏ hoàn thành' : 'Đánh dấu xong'}">
+                ${checked ? '✓' : ''}
+              </button>` : ''}
+            </div>
+            <div class="detail-value">${escHtml(val)}</div>
+          </div>`;
+        }).join('')}
       </div>
       <div class="routine-chip">⏱ ${escHtml(d.routine || '')}</div>
+      <div class="day-complete-row" id="complete-row-${d.day}">
+        <span class="complete-hint" id="hint-${d.day}">
+          ${allSubsDone
+            ? (isDone ? '✅ Ngày này đã hoàn thành!' : '🎉 Tất cả xong! Hãy đánh dấu ngày hoàn thành →')
+            : `⏳ Còn ${totalSubs - doneSubs} nhiệm vụ chưa hoàn thành`}
+        </span>
+        <button class="btn-complete-day ${isDone ? 'done' : ''} ${!allSubsDone && !isDone ? 'locked' : ''}"
+                id="btn-complete-${d.day}"
+                onclick="toggleDone(event,${d.day})"
+                ${!allSubsDone && !isDone ? 'disabled' : ''}>
+          ${isDone ? '✅ Đã hoàn thành' : '☐ Đánh dấu hoàn thành ngày'}
+        </button>
+      </div>
     </div>
   `;
   return card;
 }
 
+// ===== TOGGLE DAY EXPAND =====
 function toggleDay(day) {
   const body = document.getElementById('body-' + day);
   const icon = document.getElementById('exp-' + day);
-  body.classList.toggle('open');
-  icon.classList.toggle('open');
+  // auto-open on first click
+  if (!body.classList.contains('open')) {
+    body.classList.add('open');
+    icon.classList.add('open');
+  } else {
+    body.classList.remove('open');
+    icon.classList.remove('open');
+  }
 }
 
+// ===== TOGGLE SUB-TASK =====
+function toggleSub(e, day, key) {
+  e.stopPropagation();
+  if (!subChecked[day]) subChecked[day] = {};
+  subChecked[day][key] = !subChecked[day][key];
+  if (!subChecked[day][key]) delete subChecked[day][key];
+  if (Object.keys(subChecked[day]).length === 0) delete subChecked[day];
+  localStorage.setItem('toeic_sub', JSON.stringify(subChecked));
+
+  // update UI for this sub item
+  const scb = document.getElementById('scb-' + day + '-' + key);
+  const detailItem = document.getElementById('detail-' + day + '-' + key);
+  const isChecked = !!(subChecked[day] && subChecked[day][key]);
+  if (scb) { scb.classList.toggle('checked', isChecked); scb.textContent = isChecked ? '✓' : ''; }
+  if (detailItem) { detailItem.classList.toggle('sub-done', isChecked); }
+
+  // recalculate sub progress for this day
+  refreshDaySubProgress(day);
+}
+
+function refreshDaySubProgress(day) {
+  const d = DATA.roadmap.find(x => x.day === day);
+  if (!d) return;
+
+  const books = [
+    d.hackers !== '—' ? 'Hackers (' + d.hackers + ')' : '',
+    d.ybm !== '—' ? 'YBM (' + d.ybm + ')' : '',
+    d.ets !== '—' ? 'ETS: ' + d.ets : ''
+  ].filter(Boolean).join(' | ') || '—';
+
+  const subValues = {
+    ipa: d.ipa || '—', grammar: d.grammar || '—',
+    vocab: d.vocab || '—', listening: d.listening || '—',
+    books, review: d.review || '—',
+  };
+
+  const sub = subChecked[day] || {};
+  const totalSubs = SUB_TASKS.filter(k => subValues[k] !== '—').length;
+  const doneSubs  = SUB_TASKS.filter(k => subValues[k] !== '—' && sub[k]).length;
+  const allSubsDone = totalSubs > 0 && doneSubs === totalSubs;
+  const isDone = !!checkedDays[day];
+  const subPct = totalSubs > 0 ? Math.round(doneSubs/totalSubs*100) : 0;
+
+  // sub progress bar in header
+  const fill = document.querySelector('#subprog-' + day + ' .day-sub-bar-fill');
+  const cnt  = document.querySelector('#subprog-' + day + ' .day-sub-count');
+  if (fill) fill.style.width = subPct + '%';
+  if (cnt)  cnt.textContent = doneSubs + '/' + totalSubs;
+
+  // main checkbox
+  const cb = document.getElementById('cb-' + day);
+  if (cb) {
+    cb.classList.toggle('locked', !allSubsDone && !isDone);
+    cb.title = !allSubsDone && !isDone
+      ? 'Hoàn thành tất cả nhiệm vụ con trước!'
+      : (isDone ? 'Bỏ đánh dấu' : 'Đánh dấu hoàn thành');
+    if (!isDone) cb.textContent = allSubsDone ? '✓' : '';
+    if (!isDone && !allSubsDone) cb.classList.remove('checked');
+    else if (!isDone && allSubsDone) cb.classList.add('ready');
+  }
+
+  // complete button + hint
+  const btn = document.getElementById('btn-complete-' + day);
+  const hint = document.getElementById('hint-' + day);
+  if (btn) {
+    btn.disabled = !allSubsDone && !isDone;
+    btn.classList.toggle('locked', !allSubsDone && !isDone);
+  }
+  if (hint) {
+    if (isDone) hint.textContent = '✅ Ngày này đã hoàn thành!';
+    else if (allSubsDone) hint.textContent = '🎉 Tất cả xong! Hãy đánh dấu ngày hoàn thành →';
+    else hint.textContent = '⏳ Còn ' + (totalSubs - doneSubs) + ' nhiệm vụ chưa hoàn thành';
+  }
+}
+
+// ===== TOGGLE DAY DONE =====
 function toggleDone(e, day) {
   e.stopPropagation();
-  checkedDays[day] = !checkedDays[day];
+  // check if allowed
+  const d = DATA.roadmap.find(x => x.day === day);
+  if (!d) return;
+
+  const books = [
+    d.hackers !== '—' ? 'Hackers (' + d.hackers + ')' : '',
+    d.ybm !== '—' ? 'YBM (' + d.ybm + ')' : '',
+    d.ets !== '—' ? 'ETS: ' + d.ets : ''
+  ].filter(Boolean).join(' | ') || '—';
+  const subValues = {
+    ipa: d.ipa || '—', grammar: d.grammar || '—',
+    vocab: d.vocab || '—', listening: d.listening || '—',
+    books, review: d.review || '—',
+  };
+  const sub = subChecked[day] || {};
+  const totalSubs = SUB_TASKS.filter(k => subValues[k] !== '—').length;
+  const doneSubs  = SUB_TASKS.filter(k => subValues[k] !== '—' && sub[k]).length;
+  const allSubsDone = totalSubs > 0 && doneSubs === totalSubs;
+  const isDone = !!checkedDays[day];
+
+  if (!isDone && !allSubsDone) {
+    // shake the button to hint
+    const btn = document.getElementById('btn-complete-' + day);
+    if (btn) { btn.classList.add('shake'); setTimeout(() => btn.classList.remove('shake'), 500); }
+    return;
+  }
+
+  checkedDays[day] = !isDone;
   if (!checkedDays[day]) delete checkedDays[day];
   localStorage.setItem('toeic_done', JSON.stringify(checkedDays));
+
+  const newDone = !!checkedDays[day];
   const cb = document.getElementById('cb-' + day);
-  if (cb) { cb.classList.toggle('checked', !!checkedDays[day]); cb.textContent = checkedDays[day] ? '✓' : ''; }
+  if (cb) {
+    cb.classList.toggle('checked', newDone);
+    cb.classList.remove('ready', 'locked');
+    cb.textContent = newDone ? '✓' : (allSubsDone ? '✓' : '');
+    if (!newDone && allSubsDone) cb.classList.add('ready');
+  }
   const card = document.getElementById('day-card-' + day);
-  if (card) { card.classList.toggle('is-done', !!checkedDays[day]); }
+  if (card) card.classList.toggle('is-done', newDone);
+
+  const btn2 = document.getElementById('btn-complete-' + day);
+  const hint = document.getElementById('hint-' + day);
+  if (btn2) { btn2.textContent = newDone ? '✅ Đã hoàn thành' : '☐ Đánh dấu hoàn thành ngày'; btn2.classList.toggle('done', newDone); }
+  if (hint) hint.textContent = newDone ? '✅ Ngày này đã hoàn thành!' : '🎉 Tất cả xong! Hãy đánh dấu ngày hoàn thành →';
+
   updateGlobalProgress();
-  const dayData = DATA.roadmap.find(d => d.day === day);
-  if (dayData) updateWeekProgress(dayData.week);
+  if (d) updateWeekProgress(d.week);
 }
 
 function updateWeekProgress(week) {
@@ -216,9 +387,9 @@ function updateWeekProgress(week) {
   const done = weekDays.filter(d => checkedDays[d.day]).length;
   const pct = Math.round(done / weekDays.length * 100);
   const fill = document.querySelector('#week-' + week + ' .week-progress-fill');
-  const cnt = document.querySelector('#week-' + week + ' .week-count');
+  const cnt  = document.querySelector('#week-' + week + ' .week-count');
   if (fill) fill.style.width = pct + '%';
-  if (cnt) cnt.textContent = done + '/' + weekDays.length;
+  if (cnt)  cnt.textContent = done + '/' + weekDays.length;
 }
 
 function updateGlobalProgress() {
