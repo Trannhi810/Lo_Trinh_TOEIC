@@ -1,0 +1,137 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lộ Trình TOEIC 0 → 700 | 6 Tháng</title>
+  <meta name="description" content="Lộ trình học TOEIC từ 0 lên 700 trong 6 tháng – 180 ngày học có cấu trúc với IPA, Grammar, Vocabulary, Listening và ETS." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="hero" id="top">
+    <div class="hero-bg"></div>
+    <div class="hero-content">
+      <div class="badge">📚 Lộ Trình Học Tiếng Anh</div>
+      <h1 class="hero-title">TOEIC <span class="gradient-text">0 → 700</span></h1>
+      <p class="hero-subtitle">Hành trình <strong>180 ngày</strong> — 6 tháng chinh phục TOEIC với lộ trình bài bản, khoa học</p>
+      <div class="hero-stats" id="hero-stats">
+        <div class="stat-card">
+          <span class="stat-number" id="stat-total">180</span>
+          <span class="stat-label">Tổng ngày</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="stat-done">0</span>
+          <span class="stat-label">Đã hoàn thành</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="stat-percent">0%</span>
+          <span class="stat-label">Tiến độ</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number">26</span>
+          <span class="stat-label">Tuần học</span>
+        </div>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" id="global-progress-bar"></div>
+        </div>
+        <span class="progress-label" id="progress-label">0 / 180 ngày</span>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tab-nav" id="tab-nav">
+    <div class="tab-container">
+      <button class="tab-btn active" id="tab-roadmap" onclick="switchTab('roadmap')">
+        <span class="tab-icon">🗺️</span> Lộ Trình 180 Ngày
+      </button>
+      <button class="tab-btn" id="tab-grammar" onclick="switchTab('grammar')">
+        <span class="tab-icon">📖</span> Grammar 60 Ngày
+      </button>
+      <button class="tab-btn" id="tab-routine" onclick="switchTab('routine')">
+        <span class="tab-icon">⏱️</span> Routine Hàng Ngày
+      </button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <section id="panel-roadmap" class="panel active">
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="search-input" class="search-input" placeholder="Tìm kiếm theo ngày, tuần, nội dung..." oninput="filterRoadmap()" />
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Tuần:</label>
+          <select id="week-filter" class="filter-select" onchange="filterRoadmap()">
+            <option value="">Tất cả</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Trạng thái:</label>
+          <select id="status-filter" class="filter-select" onchange="filterRoadmap()">
+            <option value="">Tất cả</option>
+            <option value="done">Đã xong</option>
+            <option value="pending">Chưa xong</option>
+          </select>
+        </div>
+        <button class="btn-reset" onclick="resetFilters()">↺ Reset</button>
+      </div>
+      <div id="week-groups" class="week-groups"></div>
+    </section>
+
+    <section id="panel-grammar" class="panel">
+      <div class="grammar-intro">
+        <h2 class="section-title">📖 Lịch Grammar 60 Ngày</h2>
+        <p class="section-desc">Hệ thống ngữ pháp từ cơ bản đến nâng cao, phù hợp cho TOEIC Part 5–6</p>
+      </div>
+      <div class="grammar-grid" id="grammar-grid"></div>
+    </section>
+
+    <section id="panel-routine" class="panel">
+      <div class="routine-intro">
+        <h2 class="section-title">⏱️ Routine Học Theo Giai Đoạn</h2>
+        <p class="section-desc">Phân bổ thời gian tối ưu cho từng kỹ năng theo từng giai đoạn học tập</p>
+      </div>
+      <div class="routine-cards" id="routine-cards"></div>
+      <div class="tips-section">
+        <h3 class="tips-title">💡 Mẹo Học Hiệu Quả</h3>
+        <div class="tips-grid">
+          <div class="tip-card">
+            <div class="tip-icon">🎧</div>
+            <h4>Shadowing</h4>
+            <p>Nghe audio → đọc transcript → nghe lại → shadowing. Lặp lại mỗi đoạn 3–5 lần.</p>
+          </div>
+          <div class="tip-card">
+            <div class="tip-icon">📝</div>
+            <h4>Error Log</h4>
+            <p>Ghi lại mọi câu sai vào Error Log. Ôn lại cuối tuần để không lặp lỗi.</p>
+          </div>
+          <div class="tip-card">
+            <div class="tip-icon">🔄</div>
+            <h4>Active Recall</h4>
+            <p>Không nhìn sách, tự nhớ nghĩa từ + collocation + đặt câu ví dụ.</p>
+          </div>
+          <div class="tip-card">
+            <div class="tip-icon">📊</div>
+            <h4>Spaced Repetition</h4>
+            <p>Ôn từ cũ 10–15 phút mỗi ngày trước khi học từ mới.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <button class="back-to-top" id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+  <footer class="footer">
+    <p>🎯 Mục tiêu: TOEIC 700+ trong 6 tháng | Cập nhật tiến độ mỗi ngày để duy trì động lực!</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
