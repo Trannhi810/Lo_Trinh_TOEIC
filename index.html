@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="bg.css" />
 </head>
 <body>
   <header class="hero" id="top">
@@ -58,6 +59,12 @@
       <a href="flashcard.html" class="tab-btn" style="text-decoration:none;">
         <span class="tab-icon">🃏</span> Flashcard
       </a>
+      <a href="pomodoro.html" class="tab-btn" style="text-decoration:none;">
+        <span class="tab-icon">🍅</span> Pomodoro & Todo
+      </a>
+      <button class="tab-btn" onclick="openBgModal(event)" style="border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05);">
+        <span class="tab-icon">🖼️</span> Hình nền
+      </button>
     </div>
   </nav>
 
@@ -136,5 +143,6 @@
   </footer>
 
   <script src="app.js"></script>
+  <script src="bg.js"></script>
 </body>
 </html>

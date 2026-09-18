@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="bg.css" />
   <style>
     :root {
       --bg: #0b0d17;
@@ -466,6 +467,8 @@
   <nav class="header-nav">
     <a href="index.html" class="nav-link">🗺️ Lộ Trình</a>
     <a href="flashcard.html" class="nav-link active">🃏 Flashcard</a>
+    <a href="pomodoro.html" class="nav-link">🍅 Pomodoro & Todo</a>
+    <a href="#" onclick="openBgModal(event)" class="nav-link" style="border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05);">🖼️ Hình nền</a>
   </nav>
 </header>
 
@@ -1073,5 +1076,6 @@ document.getElementById('flip-card').addEventListener('keydown', e => {
 // ===== BOOT =====
 init();
 </script>
+<script src="bg.js"></script>
 </body>
 </html>

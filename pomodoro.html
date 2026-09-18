@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pomodoro & Todo | Luyện TOEIC</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="bg.css" />
+  <style>
+    :root {
+      --bg: #0b0d17;
+      --bg2: #11141f;
+      --bg3: #181c2e;
+      --card-border: rgba(99,102,241,0.18);
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --primary-dark: #4f46e5;
+      --accent: #06b6d4;
+      --success: #10b981;
+      --danger: #ef4444;
+      --text: #f1f5f9;
+      --text-muted: #8892b0;
+      --text-dim: #64748b;
+      --radius: 16px;
+      --shadow: 0 8px 32px rgba(0,0,0,0.45);
+      --transition: 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Page Background */
+    .page-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .page-bg::before {
+      content: ''; position: absolute; width: 700px; height: 700px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%);
+      top: -200px; left: -150px; animation: float1 12s ease-in-out infinite;
+    }
+    .page-bg::after {
+      content: ''; position: absolute; width: 500px; height: 500px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(6,182,212,0.10) 0%, transparent 70%);
+      bottom: -100px; right: -100px; animation: float2 15s ease-in-out infinite;
+    }
+    @keyframes float1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(60px,40px)} }
+    @keyframes float2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-40px,-60px)} }
+
+    /* Header */
+    .header {
+      position: relative; z-index: 10;
+      padding: 18px 32px; display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: rgba(11,13,23,0.85); backdrop-filter: blur(16px);
+    }
+    .header-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .logo-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: flex; align-items: center; justify-content: center; font-size: 20px;
+      box-shadow: 0 4px 15px rgba(99,102,241,0.4);
+    }
+    .logo-text { font-size: 18px; font-weight: 700; color: var(--text); }
+    .logo-text span { color: var(--primary-light); }
+    
+    .header-nav { display: flex; align-items: center; gap: 10px; }
+    .nav-link {
+      padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500;
+      color: var(--text-muted); text-decoration: none; transition: var(--transition); border: 1px solid transparent;
+    }
+    .nav-link:hover { color: var(--text); background: rgba(99,102,241,0.1); border-color: var(--card-border); }
+    .nav-link.active { color: var(--primary-light); background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.3); }
+
+    /* Layout Grid */
+    .main {
+      position: relative; z-index: 1; max-width: 1100px; margin: 0 auto;
+      padding: 40px 24px 100px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 32px;
+    }
+    @media (max-width: 800px) {
+      .main { grid-template-columns: 1fr; }
+    }
+
+    /* Panels */
+    .panel-box {
+      background: var(--bg2); border: 1px solid var(--card-border);
+      border-radius: 24px; padding: 32px;
+      box-shadow: var(--shadow);
+      display: flex; flex-direction: column;
+    }
+    .panel-title {
+      font-size: 20px; font-weight: 700; margin-bottom: 24px; display: flex; align-items: center; gap: 10px;
+    }
+
+    /* POMODORO */
+    .pomo-tabs {
+      display: flex; gap: 6px; background: var(--bg3); border-radius: 12px; padding: 6px; margin-bottom: 32px;
+    }
+    .pomo-tab {
+      flex: 1; padding: 8px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600;
+      color: var(--text-muted); background: transparent; cursor: pointer; transition: var(--transition);
+    }
+    .pomo-tab.active { background: var(--primary-dark); color: #fff; box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
+    .pomo-tab:hover:not(.active) { color: var(--text); background: rgba(255,255,255,0.05); }
+
+    .timer-display {
+      font-family: 'JetBrains Mono', monospace; font-size: 72px; font-weight: 700; line-height: 1;
+      text-align: center; margin-bottom: 32px;
+      background: linear-gradient(135deg, #fff, var(--primary-light));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      letter-spacing: -2px;
+    }
+
+    .pomo-controls { display: flex; justify-content: center; gap: 16px; }
+    .pomo-btn {
+      padding: 14px 28px; border-radius: 14px; border: none; font-size: 16px; font-weight: 700;
+      cursor: pointer; transition: var(--transition); display: flex; align-items: center; gap: 8px;
+    }
+    .btn-main {
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: #fff;
+      box-shadow: 0 6px 20px rgba(99,102,241,0.4); min-width: 140px; justify-content: center;
+    }
+    .btn-main:hover { transform: translateY(-2px); }
+    .btn-secondary {
+      background: var(--bg3); color: var(--text-muted); border: 1px solid var(--card-border);
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+
+    /* TODO LIST */
+    .todo-form { display: flex; gap: 10px; margin-bottom: 24px; }
+    .todo-input {
+      flex: 1; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--card-border);
+      background: var(--bg3); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; outline: none; transition: var(--transition);
+    }
+    .todo-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+    .todo-add {
+      padding: 0 20px; border-radius: 12px; border: none; background: var(--primary); color: #fff;
+      font-weight: 700; cursor: pointer; transition: var(--transition);
+    }
+    .todo-add:hover { background: var(--primary-light); }
+
+    .todo-list { display: flex; flex-direction: column; gap: 10px; flex: 1; overflow-y: auto; max-height: 400px; padding-right: 4px; }
+    .todo-list::-webkit-scrollbar { width: 4px; }
+    .todo-list::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 4px; }
+
+    .todo-item {
+      display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+      background: var(--bg3); border: 1px solid var(--card-border); border-radius: 12px; transition: var(--transition);
+    }
+    .todo-item:hover { border-color: rgba(99,102,241,0.4); }
+    .todo-checkbox {
+      appearance: none; width: 22px; height: 22px; border: 2px solid var(--text-dim); border-radius: 6px;
+      cursor: pointer; position: relative; transition: var(--transition); display: flex; align-items: center; justify-content: center;
+    }
+    .todo-checkbox:checked { background: var(--success); border-color: var(--success); }
+    .todo-checkbox:checked::after {
+      content: '✓'; color: #fff; font-size: 14px; font-weight: 900;
+    }
+    .todo-text { flex: 1; font-size: 14px; font-weight: 500; transition: var(--transition); }
+    .todo-item.done .todo-text { text-decoration: line-through; color: var(--text-dim); }
+    .todo-del {
+      background: none; border: none; color: var(--text-dim); font-size: 16px; cursor: pointer; transition: var(--transition); padding: 4px;
+    }
+    .todo-del:hover { color: var(--danger); }
+    .empty-todo { text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px; font-style: italic; }
+
+    /* TOAST */
+    .toast-wrap { position: fixed; bottom: 28px; right: 28px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+    .toast { padding: 12px 20px; border-radius: 12px; font-size: 14px; font-weight: 600; background: var(--bg2); border: 1px solid var(--card-border); box-shadow: var(--shadow); animation: toastIn 0.3s ease, toastOut 0.3s ease 2.5s forwards; display: flex; align-items: center; gap: 8px; }
+    .toast.success { border-color: rgba(16,185,129,0.4); color: #6ee7b7; }
+    @keyframes toastIn  { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:none} }
+    @keyframes toastOut { to{opacity:0;transform:translateX(20px)} }
+  </style>
+</head>
+<body>
+  <div class="page-bg"></div>
+
+  <header class="header">
+    <a href="index.html" class="header-logo">
+      <div class="logo-icon">🍅</div>
+      <span class="logo-text">TOEIC <span>Pomodoro</span></span>
+    </a>
+    <nav class="header-nav">
+      <a href="index.html" class="nav-link">🗺️ Lộ Trình</a>
+      <a href="flashcard.html" class="nav-link">🃏 Flashcard</a>
+      <a href="pomodoro.html" class="nav-link active">🍅 Pomodoro & Todo</a>
+      <a href="#" onclick="openBgModal(event)" class="nav-link" style="border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05);">🖼️ Hình nền</a>
+    </nav>
+  </header>
+
+  <main class="main">
+    <!-- POMODORO -->
+    <div class="panel-box">
+      <div class="panel-title">⏱️ Pomodoro Timer</div>
+      <div class="pomo-tabs">
+        <button class="pomo-tab active" id="tab-focus" onclick="setMode('focus')">Tập Trung (25p)</button>
+        <button class="pomo-tab" id="tab-short" onclick="setMode('short')">Nghỉ Ngắn (5p)</button>
+        <button class="pomo-tab" id="tab-long" onclick="setMode('long')">Nghỉ Dài (15p)</button>
+      </div>
+      <div class="timer-display" id="time-left">25:00</div>
+      <div class="pomo-controls">
+        <button class="pomo-btn btn-main" id="btn-toggle" onclick="toggleTimer()">▶ Bắt Đầu</button>
+        <button class="pomo-btn btn-secondary" onclick="resetTimer()">↺ Đặt lại</button>
+      </div>
+    </div>
+
+    <!-- TODO LIST -->
+    <div class="panel-box">
+      <div class="panel-title">📋 Việc Cần Làm</div>
+      <form class="todo-form" onsubmit="addTodo(event)">
+        <input type="text" id="todo-input" class="todo-input" placeholder="Thêm mục tiêu bài học..." required />
+        <button type="submit" class="todo-add">Thêm</button>
+      </form>
+      <div class="todo-list" id="todo-list"></div>
+    </div>
+  </main>
+
+  <div class="toast-wrap" id="toast-wrap"></div>
+
+  <!-- Audio for timer end -->
+  <audio id="alarm-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
+  <script>
+    // ==========================================
+    // POMODORO LOGIC
+    // ==========================================
+    const MODES = {
+      focus: 25 * 60,
+      short: 5 * 60,
+      long: 15 * 60
+    };
+    
+    let currentMode = 'focus';
+    let timeLeft = MODES[currentMode];
+    let timerId = null;
+    let isRunning = false;
+
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+      const s = (seconds % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function updateTimerDisplay() {
+      document.getElementById('time-left').textContent = formatTime(timeLeft);
+      document.title = `${formatTime(timeLeft)} - Pomodoro | TOEIC`;
+    }
+
+    function setMode(mode) {
+      if (isRunning) toggleTimer(); // pause if running
+      currentMode = mode;
+      timeLeft = MODES[mode];
+      
+      // Update UI tabs
+      document.querySelectorAll('.pomo-tab').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('tab-' + mode).classList.add('active');
+      
+      updateTimerDisplay();
+    }
+
+    function toggleTimer() {
+      const btn = document.getElementById('btn-toggle');
+      if (isRunning) {
+        clearInterval(timerId);
+        btn.innerHTML = '▶ Tiếp tục';
+        btn.style.background = '';
+        isRunning = false;
+      } else {
+        btn.innerHTML = '⏸ Tạm dừng';
+        btn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+        isRunning = true;
+        
+        timerId = setInterval(() => {
+          if (timeLeft > 0) {
+            timeLeft--;
+            updateTimerDisplay();
+          } else {
+            clearInterval(timerId);
+            isRunning = false;
+            btn.innerHTML = '▶ Bắt Đầu';
+            btn.style.background = '';
+            document.getElementById('alarm-sound').play().catch(()=>{});
+            showToast('⏰ Hết giờ!', 'success');
+          }
+        }, 1000);
+      }
+    }
+
+    function resetTimer() {
+      if (isRunning) toggleTimer(); // pause
+      timeLeft = MODES[currentMode];
+      updateTimerDisplay();
+      document.getElementById('btn-toggle').innerHTML = '▶ Bắt Đầu';
+      document.getElementById('btn-toggle').style.background = '';
+    }
+
+    // ==========================================
+    // TODO LIST LOGIC
+    // ==========================================
+    let todos = [];
+
+    function loadTodos() {
+      try {
+        const stored = localStorage.getItem('toeic_todos');
+        if (stored) todos = JSON.parse(stored);
+        if (!Array.isArray(todos)) todos = [];
+      } catch (e) {
+        todos = [];
+      }
+      renderTodos();
+    }
+
+    function saveTodos() {
+      localStorage.setItem('toeic_todos', JSON.stringify(todos));
+    }
+
+    function renderTodos() {
+      const list = document.getElementById('todo-list');
+      if (todos.length === 0) {
+        list.innerHTML = '<div class="empty-todo">Chưa có công việc nào. Thêm việc cần làm nhé!</div>';
+        return;
+      }
+      
+      list.innerHTML = todos.map((todo, idx) => `
+        <div class="todo-item ${todo.done ? 'done' : ''}">
+          <input type="checkbox" class="todo-checkbox" ${todo.done ? 'checked' : ''} onchange="toggleTodo(${idx})" />
+          <span class="todo-text">${todo.text}</span>
+          <button class="todo-del" onclick="deleteTodo(${idx})" title="Xóa">✕</button>
+        </div>
+      `).join('');
+    }
+
+    function addTodo(e) {
+      e.preventDefault();
+      const input = document.getElementById('todo-input');
+      const text = input.value.trim();
+      if (!text) return;
+      
+      todos.push({ text, done: false });
+      saveTodos();
+      renderTodos();
+      input.value = '';
+    }
+
+    function toggleTodo(idx) {
+      todos[idx].done = !todos[idx].done;
+      saveTodos();
+      renderTodos();
+    }
+
+    function deleteTodo(idx) {
+      todos.splice(idx, 1);
+      saveTodos();
+      renderTodos();
+    }
+
+    function showToast(msg, type='success') {
+      const wrap = document.getElementById('toast-wrap');
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      t.textContent = msg;
+      wrap.appendChild(t);
+      setTimeout(() => { if (wrap.contains(t)) wrap.removeChild(t); }, 3000);
+    }
+
+    // Initialize
+    updateTimerDisplay();
+    loadTodos();
+  </script>
+  <script src="bg.js"></script>
+</body>
+</html>
