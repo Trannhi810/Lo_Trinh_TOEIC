@@ -666,6 +666,7 @@ let deck = [];
 let currentIndex = 0;
 let knownSet   = new Set();
 let unknownSet = new Set();
+let deletedSet = new Set();
 let customCards = [];
 
 let quizQuestions = [];
@@ -698,18 +699,25 @@ function loadStorage() {
     let u = JSON.parse(localStorage.getItem('fc_unknown') || '[]'); 
     unknownSet = new Set(Array.isArray(u) ? u : []); 
   } catch(e) { unknownSet = new Set(); }
+  
+  try { 
+    let d = JSON.parse(localStorage.getItem('fc_deleted') || '[]'); 
+    deletedSet = new Set(Array.isArray(d) ? d : []); 
+  } catch(e) { deletedSet = new Set(); }
 }
 function saveCustom()   { localStorage.setItem('fc_custom',  JSON.stringify(customCards)); }
 function saveProgress() {
   localStorage.setItem('fc_known',   JSON.stringify([...knownSet]));
   localStorage.setItem('fc_unknown', JSON.stringify([...unknownSet]));
+  localStorage.setItem('fc_deleted', JSON.stringify([...deletedSet]));
 }
 
 function buildAllCards() {
-  allCards = [...BUILTIN_VOCAB, ...BUILTIN_GRAMMAR, ...customCards];
-  allCards.forEach((c, i) => {
+  let tempCards = [...BUILTIN_VOCAB, ...BUILTIN_GRAMMAR, ...customCards];
+  tempCards.forEach((c, i) => {
     if (!c.id) c.id = 'card_' + i + '_' + (c.word || '').replace(/\s+/g, '_');
   });
+  allCards = tempCards.filter(c => !deletedSet.has(c.id));
   refreshTopicDropdowns();
 }
 
@@ -978,9 +986,23 @@ function addCustomCard() {
 }
 
 function deleteCard(id) {
+  // If it's a custom card, remove it from customCards
+  const initialLen = customCards.length;
   customCards = customCards.filter(c => c.id !== id);
-  saveCustom(); knownSet.delete(id); unknownSet.delete(id);
-  saveProgress(); buildAllCards(); applyFilters(); updateStats(); renderCardList();
+  
+  // If it wasn't a custom card, it's a built-in card, so we mark it as deleted
+  if (customCards.length === initialLen) {
+    deletedSet.add(id);
+  }
+  
+  saveCustom(); 
+  knownSet.delete(id); 
+  unknownSet.delete(id);
+  saveProgress(); 
+  buildAllCards(); 
+  applyFilters(); 
+  updateStats(); 
+  renderCardList();
   showToast('🗑️ Đã xóa thẻ', 'success');
 }
 
@@ -1005,7 +1027,7 @@ function renderCardList() {
       <span class="card-list-word">${c.word}</span>
       <span class="card-list-meaning">${c.meaning}</span>
       ${c.topic ? `<span class="topic-badge" style="background:rgba(6,182,212,0.12);color:var(--accent);border:1px solid rgba(6,182,212,0.25);font-size:10px;padding:2px 7px;border-radius:20px;white-space:nowrap">🏷️ ${c.topic}</span>` : ''}
-      ${c.type==='custom' ? `<button class="delete-btn" onclick="deleteCard('${c.id}')" title="Xóa thẻ này">🗑</button>` : ''}
+      <button class="delete-btn" onclick="deleteCard('${c.id}')" title="Xóa thẻ này">🗑</button>
     </div>
   `).join('');
 }
