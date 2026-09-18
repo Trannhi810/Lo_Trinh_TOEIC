@@ -10,9 +10,9 @@
   <link rel="stylesheet" href="bg.css" />
   <style>
     :root {
-      --bg: #0b0d17;
-      --bg2: #11141f;
-      --bg3: #181c2e;
+      --bg: transparent;
+      --bg2: rgba(17, 20, 31, 0.65);
+      --bg3: rgba(24, 28, 46, 0.65);
       --card-border: rgba(99,102,241,0.18);
       --primary: #6366f1;
       --primary-light: #818cf8;
@@ -94,6 +94,7 @@
       border-radius: 24px; padding: 32px;
       box-shadow: var(--shadow);
       display: flex; flex-direction: column;
+      backdrop-filter: blur(12px);
     }
     .panel-title {
       font-size: 20px; font-weight: 700; margin-bottom: 24px; display: flex; align-items: center; gap: 10px;
@@ -102,6 +103,7 @@
     /* POMODORO */
     .pomo-tabs {
       display: flex; gap: 6px; background: var(--bg3); border-radius: 12px; padding: 6px; margin-bottom: 32px;
+      backdrop-filter: blur(12px);
     }
     .pomo-tab {
       flex: 1; padding: 8px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600;
@@ -153,6 +155,7 @@
     .todo-item {
       display: flex; align-items: center; gap: 12px; padding: 14px 16px;
       background: var(--bg3); border: 1px solid var(--card-border); border-radius: 12px; transition: var(--transition);
+      backdrop-filter: blur(12px);
     }
     .todo-item:hover { border-color: rgba(99,102,241,0.4); }
     .todo-checkbox {

@@ -5,10 +5,10 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #0a0b14;
-  --bg2: #0f1120;
-  --bg3: #141828;
-  --card: #161c2e;
+  --bg: transparent;
+  --bg2: rgba(15, 17, 32, 0.65);
+  --bg3: rgba(20, 24, 40, 0.65);
+  --card: rgba(22, 28, 46, 0.65);
   --card-border: rgba(99,102,241,0.15);
   --accent: #6366f1;
   --accent2: #8b5cf6;
@@ -136,11 +136,12 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .tab-nav {
   position: sticky;
   top: 0;
-  z-index: 100;
-  background: rgba(10,11,20,0.85);
-  backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  padding: 0 24px;
+  z-index: 50;
+  background: rgba(10,11,20,0.6);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--card-border);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  padding: 16px 24px;
 }
 .tab-container {
   max-width: 1200px;
@@ -184,6 +185,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
   background: var(--card);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
+  backdrop-filter: blur(12px);
 }
 .search-wrap {
   position: relative;
@@ -256,6 +258,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
   cursor: pointer;
   user-select: none;
   transition: all var(--transition);
+  backdrop-filter: blur(12px);
 }
 .week-header:hover { border-color: rgba(99,102,241,0.4); background: linear-gradient(135deg, rgba(99,102,241,0.18), rgba(139,92,246,0.12)); }
 .week-label {
@@ -292,6 +295,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
   border-radius: var(--radius);
   overflow: hidden;
   transition: all var(--transition);
+  backdrop-filter: blur(12px);
 }
 .day-card:hover { border-color: rgba(99,102,241,0.3); transform: translateX(2px); }
 .day-card.is-done { border-left: 3px solid var(--green); }
@@ -521,6 +525,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
   transition: all var(--transition);
   position: relative;
   overflow: hidden;
+  backdrop-filter: blur(12px);
 }
 .grammar-card::before {
   content: '';
@@ -560,6 +565,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
   grid-template-columns: auto 1fr;
   gap: 20px;
   transition: all var(--transition);
+  backdrop-filter: blur(12px);
 }
 .routine-card:hover { border-color: rgba(99,102,241,0.3); transform: translateY(-2px); }
 .routine-period-badge {
