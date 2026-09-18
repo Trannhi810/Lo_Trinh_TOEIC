@@ -189,13 +189,13 @@ function renderBg() {
     overlay.style.zIndex = '1';
     
     const iframe = document.createElement('iframe');
-    iframe.src = \`https://www.youtube.com/embed/\${currentBg.value}?autoplay=1&mute=1&controls=0&loop=1&playlist=\${currentBg.value}&modestbranding=1&showinfo=0\`;
+    iframe.src = `https://www.youtube.com/embed/${currentBg.value}?autoplay=1&mute=1&controls=0&loop=1&playlist=${currentBg.value}&modestbranding=1&showinfo=0`;
     iframe.frameBorder = '0';
     iframe.allow = 'autoplay; encrypted-media';
     
     container.appendChild(iframe);
     container.appendChild(overlay);
   } else if (currentBg.type === 'image') {
-    container.style.backgroundImage = \`linear-gradient(rgba(11, 13, 23, 0.7), rgba(11, 13, 23, 0.7)), url('\${currentBg.value}')\`;
+    container.style.backgroundImage = `linear-gradient(rgba(11, 13, 23, 0.7), rgba(11, 13, 23, 0.7)), url('${currentBg.value}')`;
   }
 }
