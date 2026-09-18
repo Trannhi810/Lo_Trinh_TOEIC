@@ -680,6 +680,7 @@ function init() {
   buildAllCards();
   applyFilters();
   updateStats();
+  switchMode('flashcard'); // hiện panel đầu tiên
 }
 
 function loadStorage() {
@@ -757,8 +758,8 @@ function shuffleDeck() {
 }
 
 function startDeck() {
-  applyFilters();
   if (currentMode !== 'flashcard') switchMode('flashcard');
+  else applyFilters();
 }
 
 // ===== RENDER CARD =====
