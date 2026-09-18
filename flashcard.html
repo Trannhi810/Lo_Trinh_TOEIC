@@ -417,6 +417,23 @@
     .delete-btn { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 4px; border-radius: 6px; transition: var(--transition); display: flex; align-items: center; }
     .delete-btn:hover { color: var(--danger); background: rgba(239,68,68,0.1); }
 
+    /* TOPIC BADGE */
+    .topic-badge {
+      display: inline-block; padding: 3px 9px; border-radius: 20px;
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+      white-space: nowrap;
+    }
+    .card-topic-wrap {
+      position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+    }
+    .card-topic-chip {
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 11px; font-weight: 600;
+      background: rgba(6,182,212,0.15); color: var(--accent);
+      border: 1px solid rgba(6,182,212,0.25);
+    }
+
     /* TOAST */
     .toast-wrap { position: fixed; bottom: 28px; right: 28px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
     .toast { padding: 12px 20px; border-radius: 12px; font-size: 14px; font-weight: 600; background: var(--bg2); border: 1px solid var(--card-border); box-shadow: var(--shadow); animation: toastIn 0.3s ease, toastOut 0.3s ease 2.5s forwards; display: flex; align-items: center; gap: 8px; }
@@ -483,6 +500,9 @@
       <option value="grammar">📖 Ngữ pháp</option>
       <option value="custom">✨ Thẻ tùy chỉnh</option>
     </select>
+    <select id="filter-topic" class="ctrl-select" onchange="applyFilters()">
+      <option value="all">🏷️ Tất cả chủ đề</option>
+    </select>
     <select id="filter-status" class="ctrl-select" onchange="applyFilters()">
       <option value="all">📊 Tất cả trạng thái</option>
       <option value="unknown">❓ Chưa biết</option>
@@ -512,6 +532,7 @@
             <div class="card-word" id="fc-word">—</div>
             <div class="card-ipa"  id="fc-ipa"></div>
             <div class="card-pos"  id="fc-pos"></div>
+            <div class="card-topic-wrap" id="fc-topic-wrap"></div>
           </div>
           <div class="flip-back">
             <span class="card-type-badge badge-vocab" id="fc-badge-back">VOCAB</span>
@@ -580,6 +601,11 @@
           <input id="inp-meaning" class="form-input" type="text" placeholder="e.g. đàm phán" />
         </div>
         <div class="form-group">
+          <label class="form-label" for="inp-topic">Chủ đề 🏷️</label>
+          <input id="inp-topic" class="form-input" type="text" placeholder="e.g. Hợp đồng, Marketing, Tài chính..." list="topic-suggestions" />
+          <datalist id="topic-suggestions"></datalist>
+        </div>
+        <div class="form-group">
           <label class="form-label" for="inp-ipa">Phiên âm IPA</label>
           <input id="inp-ipa" class="form-input" type="text" placeholder="e.g. /nɪˈɡoʊʃiˌeɪt/" />
         </div>
@@ -595,8 +621,11 @@
       </div>
       <div class="manage-box">
         <h3>📋 Danh Sách Thẻ <span style="color:var(--text-dim);font-weight:400;font-size:14px" id="manage-count"></span></h3>
-        <div style="margin-bottom:14px;">
-          <input id="search-cards" class="form-input" type="text" placeholder="🔍 Tìm thẻ theo từ hoặc nghĩa..." oninput="renderCardList()" />
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+          <input id="search-cards" class="form-input" type="text" placeholder="🔍 Tìm thẻ..." oninput="renderCardList()" style="flex:1;min-width:140px;" />
+          <select id="manage-topic-filter" class="ctrl-select" onchange="renderCardList()" style="flex:1;min-width:120px;">
+            <option value="all">🏷️ Tất cả chủ đề</option>
+          </select>
         </div>
         <div class="card-list" id="card-list"></div>
       </div>
@@ -611,100 +640,24 @@
 // TOEIC FLASHCARD — APP.JS
 // ============================================================
 
-// ---- BUILT-IN VOCAB (64 từ, 8 chủ đề) ----
+// ---- Từ vựng mẫu (1 từ / chủ đề — thêm thẻ của bạn trong tab “Quản Lý Thẻ”) ----
 const BUILTIN_VOCAB = [
-  // Unit 1 – Contracts
-  { word:"contract",    ipa:"/ˈkɒntrækt/",   pos:"noun",      meaning:"hợp đồng",                    example:"Please sign the <em>contract</em> before Friday.",             type:"vocab" },
-  { word:"negotiate",   ipa:"/nɪˈɡoʊʃieɪt/", pos:"verb",      meaning:"đàm phán",                    example:"We need to <em>negotiate</em> the terms.",                     type:"vocab" },
-  { word:"agreement",   ipa:"/əˈɡriːmənt/",   pos:"noun",      meaning:"thỏa thuận",                  example:"Both parties signed the <em>agreement</em>.",                  type:"vocab" },
-  { word:"clause",      ipa:"/klɔːz/",        pos:"noun",      meaning:"điều khoản",                  example:"Read each <em>clause</em> carefully.",                          type:"vocab" },
-  { word:"obligation",  ipa:"/ˌɒblɪˈɡeɪʃn/", pos:"noun",      meaning:"nghĩa vụ",                    example:"You have an <em>obligation</em> to deliver on time.",           type:"vocab" },
-  { word:"terminate",   ipa:"/ˈtɜːmɪneɪt/",  pos:"verb",      meaning:"chấm dứt",                    example:"They decided to <em>terminate</em> the contract.",              type:"vocab" },
-  { word:"penalty",     ipa:"/ˈpenəlti/",     pos:"noun",      meaning:"hình phạt hợp đồng",          example:"There is a <em>penalty</em> for late delivery.",                type:"vocab" },
-  { word:"comply",      ipa:"/kəmˈplaɪ/",     pos:"verb",      meaning:"tuân thủ",                    example:"All staff must <em>comply</em> with the policy.",               type:"vocab" },
-  // Unit 2 – Marketing
-  { word:"promotion",   ipa:"/prəˈmoʊʃn/",   pos:"noun",      meaning:"khuyến mãi / thăng chức",     example:"The store is running a special <em>promotion</em>.",            type:"vocab" },
-  { word:"campaign",    ipa:"/kæmˈpeɪn/",     pos:"noun",      meaning:"chiến dịch",                  example:"The ad <em>campaign</em> was very successful.",                 type:"vocab" },
-  { word:"target",      ipa:"/ˈtɑːrɡɪt/",    pos:"noun/verb", meaning:"mục tiêu / nhắm vào",         example:"We <em>target</em> customers aged 18–35.",                      type:"vocab" },
-  { word:"revenue",     ipa:"/ˈrevənjuː/",   pos:"noun",      meaning:"doanh thu",                    example:"Annual <em>revenue</em> increased by 20%.",                    type:"vocab" },
-  { word:"brand",       ipa:"/brænd/",        pos:"noun",      meaning:"thương hiệu",                  example:"Apple is one of the strongest <em>brands</em>.",               type:"vocab" },
-  { word:"launch",      ipa:"/lɔːntʃ/",       pos:"verb",      meaning:"ra mắt / tung ra",             example:"We will <em>launch</em> a new product next month.",             type:"vocab" },
-  { word:"consumer",    ipa:"/kənˈsjuːmər/",  pos:"noun",      meaning:"người tiêu dùng",              example:"The <em>consumer</em> always comes first.",                    type:"vocab" },
-  { word:"strategy",    ipa:"/ˈstrætədʒi/",  pos:"noun",      meaning:"chiến lược",                  example:"We need a clear marketing <em>strategy</em>.",                 type:"vocab" },
-  // Unit 3 – Personnel
-  { word:"recruit",     ipa:"/rɪˈkruːt/",    pos:"verb",      meaning:"tuyển dụng",                  example:"HR will <em>recruit</em> 10 new engineers.",                   type:"vocab" },
-  { word:"applicant",   ipa:"/ˈæplɪkənt/",   pos:"noun",      meaning:"người ứng tuyển",             example:"The <em>applicant</em> submitted a strong resume.",             type:"vocab" },
-  { word:"résumé",      ipa:"/ˈrezjumeɪ/",   pos:"noun",      meaning:"CV / hồ sơ xin việc",         example:"Please attach your <em>résumé</em> to the email.",              type:"vocab" },
-  { word:"promote",     ipa:"/prəˈmoʊt/",    pos:"verb",      meaning:"thăng chức",                  example:"She was <em>promoted</em> to manager.",                         type:"vocab" },
-  { word:"resign",      ipa:"/rɪˈzaɪn/",     pos:"verb",      meaning:"từ chức",                     example:"He decided to <em>resign</em> from his position.",              type:"vocab" },
-  { word:"salary",      ipa:"/ˈsæləri/",     pos:"noun",      meaning:"lương",                        example:"The average <em>salary</em> increased this year.",              type:"vocab" },
-  { word:"benefit",     ipa:"/ˈbenɪfɪt/",    pos:"noun",      meaning:"phúc lợi",                    example:"Health insurance is one of the employee <em>benefits</em>.",   type:"vocab" },
-  { word:"performance", ipa:"/pərˈfɔːrməns/",pos:"noun",      meaning:"hiệu suất / màn trình diễn",  example:"Annual <em>performance</em> reviews are held in December.",    type:"vocab" },
-  // Unit 4 – Finance
-  { word:"budget",      ipa:"/ˈbʌdʒɪt/",    pos:"noun",      meaning:"ngân sách",                   example:"The project exceeded its <em>budget</em>.",                    type:"vocab" },
-  { word:"invoice",     ipa:"/ˈɪnvɔɪs/",    pos:"noun",      meaning:"hóa đơn",                     example:"Please send the <em>invoice</em> by email.",                   type:"vocab" },
-  { word:"profit",      ipa:"/ˈprɒfɪt/",     pos:"noun",      meaning:"lợi nhuận",                   example:"The company made a large <em>profit</em> last year.",           type:"vocab" },
-  { word:"expense",     ipa:"/ɪkˈspens/",    pos:"noun",      meaning:"chi phí",                     example:"Travel <em>expenses</em> must be approved.",                   type:"vocab" },
-  { word:"invest",      ipa:"/ɪnˈvest/",     pos:"verb",      meaning:"đầu tư",                      example:"They plan to <em>invest</em> in renewable energy.",             type:"vocab" },
-  { word:"quarterly",   ipa:"/ˈkwɔːtərli/",  pos:"adj/adv",   meaning:"hàng quý",                    example:"We submit <em>quarterly</em> reports.",                        type:"vocab" },
-  { word:"forecast",    ipa:"/ˈfɔːrkæst/",   pos:"noun/verb", meaning:"dự báo",                      example:"The sales <em>forecast</em> looks positive.",                  type:"vocab" },
-  { word:"dividend",    ipa:"/ˈdɪvɪdend/",   pos:"noun",      meaning:"cổ tức",                      example:"Shareholders received a <em>dividend</em>.",                   type:"vocab" },
-  // Unit 5 – Production
-  { word:"manufacture", ipa:"/ˌmænjuˈfæktʃər/",pos:"verb",   meaning:"sản xuất",                    example:"They <em>manufacture</em> cars in this factory.",               type:"vocab" },
-  { word:"assembly",    ipa:"/əˈsembli/",     pos:"noun",      meaning:"lắp ráp / hội đồng",          example:"The <em>assembly</em> line runs 24 hours.",                    type:"vocab" },
-  { word:"supply",      ipa:"/səˈplaɪ/",      pos:"noun/verb", meaning:"cung cấp",                    example:"We <em>supply</em> parts to car makers.",                      type:"vocab" },
-  { word:"inventory",   ipa:"/ˈɪnvəntri/",   pos:"noun",      meaning:"hàng tồn kho",                example:"We need to check the <em>inventory</em>.",                     type:"vocab" },
-  { word:"defect",      ipa:"/ˈdiːfekt/",    pos:"noun",      meaning:"lỗi / khuyết tật sản phẩm",  example:"The product was recalled due to a <em>defect</em>.",           type:"vocab" },
-  { word:"quality",     ipa:"/ˈkwɒlɪti/",    pos:"noun",      meaning:"chất lượng",                  example:"<em>Quality</em> control is essential.",                        type:"vocab" },
-  { word:"efficiency",  ipa:"/ɪˈfɪʃənsi/",   pos:"noun",      meaning:"hiệu quả",                    example:"New machines improved <em>efficiency</em>.",                   type:"vocab" },
-  { word:"output",      ipa:"/ˈaʊtpʊt/",     pos:"noun",      meaning:"sản lượng",                   example:"Monthly <em>output</em> increased by 15%.",                    type:"vocab" },
-  // Unit 6 – Logistics
-  { word:"shipment",    ipa:"/ˈʃɪpmənt/",    pos:"noun",      meaning:"lô hàng gửi đi",              example:"The <em>shipment</em> arrived on time.",                       type:"vocab" },
-  { word:"freight",     ipa:"/freɪt/",        pos:"noun",      meaning:"hàng hóa vận chuyển",         example:"<em>Freight</em> costs have risen sharply.",                   type:"vocab" },
-  { word:"destination", ipa:"/ˌdestɪˈneɪʃn/",pos:"noun",      meaning:"điểm đến",                    example:"What is the final <em>destination</em>?",                      type:"vocab" },
-  { word:"carrier",     ipa:"/ˈkæriər/",     pos:"noun",      meaning:"đơn vị vận chuyển",           example:"Choose a reliable <em>carrier</em>.",                          type:"vocab" },
-  { word:"customs",     ipa:"/ˈkʌstəmz/",    pos:"noun",      meaning:"hải quan",                    example:"The goods cleared <em>customs</em> yesterday.",                type:"vocab" },
-  { word:"delay",       ipa:"/dɪˈleɪ/",      pos:"noun/verb", meaning:"sự chậm trễ / làm trễ",       example:"There was a <em>delay</em> due to bad weather.",                type:"vocab" },
-  { word:"warehouse",   ipa:"/ˈweərhaʊs/",   pos:"noun",      meaning:"kho hàng",                    example:"The goods are stored in a <em>warehouse</em>.",                type:"vocab" },
-  { word:"tracking",    ipa:"/ˈtrækɪŋ/",     pos:"noun",      meaning:"theo dõi vận chuyển",         example:"Use the <em>tracking</em> number online.",                     type:"vocab" },
-  // Unit 7 – Meetings
-  { word:"agenda",      ipa:"/əˈdʒendə/",    pos:"noun",      meaning:"chương trình họp",             example:"Please review the meeting <em>agenda</em>.",                   type:"vocab" },
-  { word:"minutes",     ipa:"/ˈmɪnɪts/",     pos:"noun",      meaning:"biên bản cuộc họp",           example:"She took the <em>minutes</em> during the meeting.",             type:"vocab" },
-  { word:"proposal",    ipa:"/prəˈpoʊzl/",   pos:"noun",      meaning:"đề xuất",                     example:"He submitted a budget <em>proposal</em>.",                     type:"vocab" },
-  { word:"confirm",     ipa:"/kənˈfɜːrm/",   pos:"verb",      meaning:"xác nhận",                    example:"Please <em>confirm</em> your attendance.",                     type:"vocab" },
-  { word:"postpone",    ipa:"/poʊstˈpoʊn/",  pos:"verb",      meaning:"hoãn lại",                    example:"The meeting was <em>postponed</em> to Friday.",                type:"vocab" },
-  { word:"feedback",    ipa:"/ˈfiːdbæk/",    pos:"noun",      meaning:"phản hồi",                    example:"We appreciate your <em>feedback</em>.",                        type:"vocab" },
-  { word:"correspond",  ipa:"/ˌkɒrɪˈspɒnd/", pos:"verb",      meaning:"liên lạc / tương ứng",        example:"Please <em>correspond</em> via email.",                        type:"vocab" },
-  { word:"memorandum",  ipa:"/ˌmeməˈrændəm/",pos:"noun",      meaning:"bản ghi nhớ (memo)",          example:"A <em>memorandum</em> was sent to all staff.",                 type:"vocab" },
-  // Unit 8 – Real Estate
-  { word:"lease",       ipa:"/liːs/",         pos:"noun/verb", meaning:"hợp đồng thuê / thuê",        example:"They signed a 2-year <em>lease</em>.",                         type:"vocab" },
-  { word:"property",    ipa:"/ˈprɒpərti/",   pos:"noun",      meaning:"tài sản / bất động sản",      example:"She owns <em>property</em> in the city.",                      type:"vocab" },
-  { word:"premises",    ipa:"/ˈpremɪsɪz/",   pos:"noun",      meaning:"cơ sở / mặt bằng",            example:"No smoking on the <em>premises</em>.",                         type:"vocab" },
-  { word:"renovate",    ipa:"/ˈrenəveɪt/",   pos:"verb",      meaning:"cải tạo / sửa chữa",          example:"They plan to <em>renovate</em> the office.",                   type:"vocab" },
-  { word:"tenant",      ipa:"/ˈtenənt/",     pos:"noun",      meaning:"người thuê (nhà/văn phòng)",  example:"The <em>tenant</em> paid rent on time.",                       type:"vocab" },
-  { word:"landlord",    ipa:"/ˈlændlɔːrd/",  pos:"noun",      meaning:"chủ nhà / chủ cho thuê",      example:"The <em>landlord</em> agreed to fix the roof.",                type:"vocab" },
-  { word:"facility",    ipa:"/fəˈsɪlɪti/",   pos:"noun",      meaning:"cơ sở vật chất",              example:"The gym is a great <em>facility</em>.",                        type:"vocab" },
-  { word:"maintenance", ipa:"/ˈmeɪntənəns/", pos:"noun",      meaning:"bảo trì",                     example:"Regular <em>maintenance</em> keeps machines running.",          type:"vocab" },
+  { word:"contract",   ipa:"/ˈkɒntrækt/",  pos:"noun", meaning:"hợp đồng",          example:"Please sign the <em>contract</em> before Friday.", type:"vocab", topic:"Hợp Đồng" },
+  { word:"campaign",   ipa:"/kæmˈpeɪn/",    pos:"noun", meaning:"chiến dịch",          example:"The ad <em>campaign</em> was very successful.",    type:"vocab", topic:"Marketing" },
+  { word:"recruit",    ipa:"/rɪˈkruːt/",   pos:"verb", meaning:"tuyển dụng",          example:"HR will <em>recruit</em> 10 new engineers.",       type:"vocab", topic:"Nhân Sự" },
+  { word:"budget",     ipa:"/ˈbʌdʒɪt/",   pos:"noun", meaning:"ngân sách",           example:"The project exceeded its <em>budget</em>.",       type:"vocab", topic:"Tài Chính" },
+  { word:"quality",    ipa:"/ˈkwɒlɪti/",  pos:"noun", meaning:"chất lượng",          example:"<em>Quality</em> control is essential.",         type:"vocab", topic:"Sản Xuất" },
+  { word:"shipment",   ipa:"/ˈʃɪpmənt/",  pos:"noun", meaning:"lô hàng gửi đi",     example:"The <em>shipment</em> arrived on time.",          type:"vocab", topic:"Vận Tải" },
+  { word:"agenda",     ipa:"/əˈdʒendə/",   pos:"noun", meaning:"chương trình họ p",    example:"Please review the meeting <em>agenda</em>.",     type:"vocab", topic:"Giao Tiếp" },
+  { word:"lease",      ipa:"/liːs/",        pos:"noun", meaning:"hợp đồng thuê / thuê", example:"They signed a 2-year <em>lease</em>.",           type:"vocab", topic:"Bất Động Sản" },
 ];
 
-// ---- BUILT-IN GRAMMAR (16 thẻ) ----
+
+// ---- Ngữ pháp mẫu (3 thẻ — thêm thẻ của bạn trong tab “Quản Lý Thẻ”) ----
 const BUILTIN_GRAMMAR = [
-  { word:"Present Simple",          ipa:"", pos:"Thì",            meaning:"Thì Hiện Tại Đơn",                   example:"S + V(s/es) — She <em>works</em> every day.",                           type:"grammar" },
-  { word:"Present Continuous",      ipa:"", pos:"Thì",            meaning:"Thì Hiện Tại Tiếp Diễn",            example:"S + am/is/are + V-ing — She <em>is working</em> now.",                  type:"grammar" },
-  { word:"Present Perfect",         ipa:"", pos:"Thì",            meaning:"Thì Hiện Tại Hoàn Thành",           example:"S + have/has + V3 — She <em>has finished</em> the report.",             type:"grammar" },
-  { word:"Past Simple",             ipa:"", pos:"Thì",            meaning:"Thì Quá Khứ Đơn",                   example:"S + V2 — They <em>launched</em> the product yesterday.",                 type:"grammar" },
-  { word:"Past Continuous",         ipa:"", pos:"Thì",            meaning:"Thì Quá Khứ Tiếp Diễn",            example:"S + was/were + V-ing — He <em>was presenting</em> when I arrived.",     type:"grammar" },
-  { word:"Future Simple",           ipa:"", pos:"Thì",            meaning:"Thì Tương Lai Đơn",                 example:"S + will + V — We <em>will sign</em> the deal tomorrow.",               type:"grammar" },
-  { word:"Passive Voice",           ipa:"", pos:"Cấu trúc",      meaning:"Câu Bị Động",                       example:"S + be + V3 — The report <em>was submitted</em> on time.",              type:"grammar" },
-  { word:"Relative Clause",         ipa:"", pos:"Mệnh đề",       meaning:"Mệnh Đề Quan Hệ",                  example:"who/which/that — The man <em>who called</em> is our client.",           type:"grammar" },
-  { word:"Conditional Type 1",      ipa:"", pos:"Câu điều kiện", meaning:"Điều Kiện Loại 1 (Có thể xảy ra)", example:"If + V(s), S + will + V — If she <em>studies</em>, she will pass.",     type:"grammar" },
-  { word:"Conditional Type 2",      ipa:"", pos:"Câu điều kiện", meaning:"Điều Kiện Loại 2 (Không có thực)", example:"If + V2, S + would + V — If I <em>had</em> time, I would help.",        type:"grammar" },
-  { word:"Noun",                    ipa:"", pos:"Từ loại",        meaning:"Danh Từ",                           example:"Chỉ người, vật, nơi chốn: <em>manager</em>, <em>office</em>.",         type:"grammar" },
-  { word:"Adjective",               ipa:"", pos:"Từ loại",        meaning:"Tính Từ",                           example:"Mô tả danh từ: <em>efficient</em> worker, <em>annual</em> report.",   type:"grammar" },
-  { word:"Adverb",                  ipa:"", pos:"Từ loại",        meaning:"Trạng Từ",                          example:"Mô tả động từ: work <em>efficiently</em>, <em>very</em> important.",  type:"grammar" },
-  { word:"Preposition",             ipa:"", pos:"Từ loại",        meaning:"Giới Từ",                           example:"<em>at</em> 9am, <em>in</em> the office, <em>on</em> Monday.",        type:"grammar" },
-  { word:"Conjunction",             ipa:"", pos:"Từ loại",        meaning:"Liên Từ",                           example:"<em>and</em>, <em>but</em>, <em>although</em>, <em>because</em>.",    type:"grammar" },
-  { word:"Article",                 ipa:"", pos:"Từ loại",        meaning:"Mạo Từ",                            example:"<em>a</em> dog, <em>an</em> apple, <em>the</em> manager.",             type:"grammar" },
+  { word:"Present Simple",  ipa:"", pos:"Thì",       meaning:"Thì Hiện Tại Đơn",       example:"S + V(s/es) — She <em>works</em> every day.",                type:"grammar", topic:"Ngữ Pháp" },
+  { word:"Passive Voice",   ipa:"", pos:"Cấu trúc",  meaning:"Câu Bị Động",          example:"S + be + V3 — The report <em>was submitted</em> on time.",   type:"grammar", topic:"Ngữ Pháp" },
+  { word:"Conditional 1",   ipa:"", pos:"Đük kiện",  meaning:"Điều Kiện Loại 1",       example:"If + V(s), will + V — If she <em>studies</em>, she will pass.", type:"grammar", topic:"Ngữ Pháp" },
 ];
 
 // ===== STATE =====
@@ -745,13 +698,37 @@ function buildAllCards() {
   allCards.forEach((c, i) => {
     if (!c.id) c.id = 'card_' + i + '_' + (c.word || '').replace(/\s+/g, '_');
   });
+  refreshTopicDropdowns();
+}
+
+function getAllTopics() {
+  const topics = new Set();
+  allCards.forEach(c => { if (c.topic) topics.add(c.topic); });
+  return [...topics].sort();
+}
+
+function refreshTopicDropdowns() {
+  const topics = getAllTopics();
+  ['filter-topic', 'manage-topic-filter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const prev = el.value;
+    el.innerHTML = `<option value="all">🏷️ Tất cả chủ đề</option>`
+      + topics.map(t => `<option value="${t}">${t}</option>`).join('');
+    if (prev && prev !== 'all') el.value = prev;
+  });
+  // Update datalist in manage form
+  const dl = document.getElementById('topic-suggestions');
+  if (dl) dl.innerHTML = topics.map(t => `<option value="${t}">`).join('');
 }
 
 function applyFilters() {
   const tf = document.getElementById('filter-type').value;
+  const topF = document.getElementById('filter-topic').value;
   const sf = document.getElementById('filter-status').value;
   let filtered = allCards.filter(c => {
     if (tf !== 'all' && c.type !== tf) return false;
+    if (topF !== 'all' && (c.topic || '') !== topF) return false;
     if (sf === 'known'   && !knownSet.has(c.id)) return false;
     if (sf === 'unknown' &&  knownSet.has(c.id)) return false;
     return true;
@@ -799,6 +776,14 @@ function renderCard() {
   document.getElementById('fc-pos').textContent  = c.pos  ? `[ ${c.pos} ]` : '';
   document.getElementById('fc-meaning').textContent = c.meaning || '';
   document.getElementById('fc-example').innerHTML   = c.example ? `"${c.example}"` : '';
+
+  // Topic chip on front face
+  const topicWrap = document.getElementById('fc-topic-wrap');
+  if (topicWrap) {
+    topicWrap.innerHTML = c.topic
+      ? `<span class="card-topic-chip">🏷️ ${c.topic}</span>`
+      : '';
+  }
 
   const bClass = c.type === 'grammar' ? 'badge-grammar' : c.type === 'custom' ? 'badge-custom' : 'badge-vocab';
   const bText  = c.type === 'grammar' ? 'GRAMMAR' : c.type === 'custom' ? 'CUSTOM' : 'VOCAB';
@@ -972,11 +957,12 @@ function addCustomCard() {
   const ipa     = document.getElementById('inp-ipa').value.trim();
   const pos     = document.getElementById('inp-pos').value.trim();
   const example = document.getElementById('inp-example').value.trim();
-  const card = { word, meaning, ipa, pos, example, type:'custom', id:'custom_'+Date.now() };
+  const topic   = document.getElementById('inp-topic').value.trim();
+  const card = { word, meaning, ipa, pos, example, topic: topic || '', type:'custom', id:'custom_'+Date.now() };
   customCards.push(card);
   saveCustom(); buildAllCards(); applyFilters(); updateStats(); renderCardList();
-  ['inp-word','inp-meaning','inp-ipa','inp-pos','inp-example'].forEach(id => document.getElementById(id).value = '');
-  showToast(`✨ Đã thêm thẻ "${word}"`, 'success');
+  ['inp-word','inp-meaning','inp-ipa','inp-pos','inp-example','inp-topic'].forEach(id => document.getElementById(id).value = '');
+  showToast(`✨ Đã thêm thẻ "${word}"${topic ? ` [🏷️ ${topic}]` : ''}`, 'success');
 }
 
 function deleteCard(id) {
@@ -988,11 +974,14 @@ function deleteCard(id) {
 
 function renderCardList() {
   const q    = (document.getElementById('search-cards')?.value || '').toLowerCase();
+  const topF = (document.getElementById('manage-topic-filter')?.value || 'all');
   const list = document.getElementById('card-list');
   if (!list) return;
-  const toShow = allCards.filter(c =>
-    !q || c.word.toLowerCase().includes(q) || (c.meaning || '').toLowerCase().includes(q)
-  );
+  const toShow = allCards.filter(c => {
+    const matchQ = !q || c.word.toLowerCase().includes(q) || (c.meaning || '').toLowerCase().includes(q) || (c.topic || '').toLowerCase().includes(q);
+    const matchT = topF === 'all' || (c.topic || '') === topF;
+    return matchQ && matchT;
+  });
   document.getElementById('manage-count').textContent = `(${toShow.length} thẻ)`;
   if (!toShow.length) {
     list.innerHTML = `<div class="empty-state" style="padding:20px"><div class="empty-icon" style="font-size:28px">🔍</div><p>Không tìm thấy thẻ</p></div>`;
@@ -1003,6 +992,7 @@ function renderCardList() {
       <span class="card-list-type ${c.type==='grammar'?'type-grammar':c.type==='custom'?'type-custom':'type-vocab'}">${c.type==='grammar'?'GRAMMAR':c.type==='custom'?'CUSTOM':'VOCAB'}</span>
       <span class="card-list-word">${c.word}</span>
       <span class="card-list-meaning">${c.meaning}</span>
+      ${c.topic ? `<span class="topic-badge" style="background:rgba(6,182,212,0.12);color:var(--accent);border:1px solid rgba(6,182,212,0.25);font-size:10px;padding:2px 7px;border-radius:20px;white-space:nowrap">🏷️ ${c.topic}</span>` : ''}
       ${c.type==='custom' ? `<button class="delete-btn" onclick="deleteCard('${c.id}')" title="Xóa thẻ này">🗑</button>` : ''}
     </div>
   `).join('');
