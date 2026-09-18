@@ -1,12 +1,12 @@
 /* bg.js */
 
 const PRESETS = [
-  { id: 'jfKfPfyJRdk', title: 'Lofi Girl - Study', type: 'youtube', thumb: 'https://img.youtube.com/vi/jfKfPfyJRdk/mqdefault.jpg' },
-  { id: '4xDzrIxZZ0k', title: 'Tokyo Night Walk', type: 'youtube', thumb: 'https://img.youtube.com/vi/4xDzrIxZZ0k/mqdefault.jpg' },
-  { id: '7NOSDKb0HlU', title: 'Lofi Boy - Chill', type: 'youtube', thumb: 'https://img.youtube.com/vi/7NOSDKb0HlU/mqdefault.jpg' },
-  { id: 'F1B9Fk_SgI0', title: 'Ghibli Piano', type: 'youtube', thumb: 'https://img.youtube.com/vi/F1B9Fk_SgI0/mqdefault.jpg' },
-  { id: 'lP26UCnoH9s', title: 'Cozy Cabin Rain', type: 'youtube', thumb: 'https://img.youtube.com/vi/lP26UCnoH9s/mqdefault.jpg' },
-  { id: 'aGSYKFb_zxg', title: '4K Anime City', type: 'youtube', thumb: 'https://img.youtube.com/vi/aGSYKFb_zxg/mqdefault.jpg' }
+  { id: 'n61ULEU7CO0', title: 'Lofi Girl - Study', type: 'youtube', thumb: 'https://img.youtube.com/vi/n61ULEU7CO0/hqdefault.jpg' },
+  { id: '0nTOJnaEqmM', title: 'Tokyo Night Walk', type: 'youtube', thumb: 'https://img.youtube.com/vi/0nTOJnaEqmM/hqdefault.jpg' },
+  { id: '7NOSDKb0HlU', title: 'Lofi Boy - Chill', type: 'youtube', thumb: 'https://img.youtube.com/vi/7NOSDKb0HlU/hqdefault.jpg' },
+  { id: 'F1B9Fk_SgI0', title: 'Ghibli Piano', type: 'youtube', thumb: 'https://img.youtube.com/vi/F1B9Fk_SgI0/hqdefault.jpg' },
+  { id: 'lP26UCnoH9s', title: 'Cozy Cabin Rain', type: 'youtube', thumb: 'https://img.youtube.com/vi/lP26UCnoH9s/hqdefault.jpg' },
+  { id: 'V1RPi2MYptM', title: '4K Anime City', type: 'youtube', thumb: 'https://img.youtube.com/vi/V1RPi2MYptM/hqdefault.jpg' }
 ];
 
 let currentBg = null;
