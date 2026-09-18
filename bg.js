@@ -11,12 +11,17 @@ const PRESETS = [
 
 let currentBg = null;
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
+function initBg() {
   injectBgContainer();
   injectBgModal();
   loadBg();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initBg);
+} else {
+  initBg();
+}
 
 function injectBgContainer() {
   const container = document.createElement('div');

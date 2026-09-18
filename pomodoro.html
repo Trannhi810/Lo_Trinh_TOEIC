@@ -177,6 +177,28 @@
     .toast.success { border-color: rgba(16,185,129,0.4); color: #6ee7b7; }
     @keyframes toastIn  { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:none} }
     @keyframes toastOut { to{opacity:0;transform:translateX(20px)} }
+
+    /* POMO SETTINGS MODAL */
+    .pomo-modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
+      z-index: 9999; display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: var(--transition);
+    }
+    .pomo-modal-overlay.show { opacity: 1; pointer-events: auto; }
+    .pomo-modal {
+      background: var(--bg2); border: 1px solid var(--card-border); border-radius: 20px;
+      padding: 24px; width: 90%; max-width: 400px;
+      transform: translateY(20px); transition: transform 0.3s;
+    }
+    .pomo-modal-overlay.show .pomo-modal { transform: translateY(0); }
+    .pomo-modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+    .pomo-modal-group { margin-bottom: 16px; }
+    .pomo-modal-group label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
+    .pomo-modal-group input {
+      width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--card-border);
+      background: var(--bg3); color: var(--text); font-family: 'Inter'; outline: none;
+    }
+    .pomo-modal-btns { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
   </style>
 </head>
 <body>
@@ -198,11 +220,14 @@
   <main class="main">
     <!-- POMODORO -->
     <div class="panel-box">
-      <div class="panel-title">⏱️ Pomodoro Timer</div>
+      <div class="panel-title" style="justify-content: space-between;">
+        <div style="display:flex; align-items:center; gap:10px;">⏱️ Pomodoro Timer</div>
+        <button onclick="openPomoSettings()" style="background:none; border:none; cursor:pointer; font-size:18px;" title="Cài đặt thời gian">⚙️</button>
+      </div>
       <div class="pomo-tabs">
-        <button class="pomo-tab active" id="tab-focus" onclick="setMode('focus')">Tập Trung (25p)</button>
-        <button class="pomo-tab" id="tab-short" onclick="setMode('short')">Nghỉ Ngắn (5p)</button>
-        <button class="pomo-tab" id="tab-long" onclick="setMode('long')">Nghỉ Dài (15p)</button>
+        <button class="pomo-tab active" id="tab-focus" onclick="setMode('focus')">Tập Trung (<span id="lbl-focus">25</span>p)</button>
+        <button class="pomo-tab" id="tab-short" onclick="setMode('short')">Nghỉ Ngắn (<span id="lbl-short">5</span>p)</button>
+        <button class="pomo-tab" id="tab-long" onclick="setMode('long')">Nghỉ Dài (<span id="lbl-long">15</span>p)</button>
       </div>
       <div class="timer-display" id="time-left">25:00</div>
       <div class="pomo-controls">
@@ -224,6 +249,29 @@
 
   <div class="toast-wrap" id="toast-wrap"></div>
 
+  <!-- Pomo Settings Modal -->
+  <div class="pomo-modal-overlay" id="pomo-modal" onclick="closePomoSettings(event)">
+    <div class="pomo-modal" onclick="event.stopPropagation()">
+      <div class="pomo-modal-title">⚙️ Cài đặt thời gian (Phút)</div>
+      <div class="pomo-modal-group">
+        <label>Tập trung (Focus)</label>
+        <input type="number" id="inp-focus" min="1" max="120" />
+      </div>
+      <div class="pomo-modal-group">
+        <label>Nghỉ ngắn (Short Break)</label>
+        <input type="number" id="inp-short" min="1" max="60" />
+      </div>
+      <div class="pomo-modal-group">
+        <label>Nghỉ dài (Long Break)</label>
+        <input type="number" id="inp-long" min="1" max="60" />
+      </div>
+      <div class="pomo-modal-btns">
+        <button class="bg-btn bg-btn-cancel" onclick="closePomoSettings()">Hủy</button>
+        <button class="bg-btn bg-btn-apply" onclick="savePomoSettings()">✓ Lưu</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Audio for timer end -->
   <audio id="alarm-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
@@ -231,11 +279,56 @@
     // ==========================================
     // POMODORO LOGIC
     // ==========================================
-    const MODES = {
+    let MODES = {
       focus: 25 * 60,
       short: 5 * 60,
       long: 15 * 60
     };
+    
+    function loadPomoSettings() {
+      try {
+        const saved = JSON.parse(localStorage.getItem('toeic_pomo_settings'));
+        if (saved) {
+          if (saved.focus) MODES.focus = saved.focus * 60;
+          if (saved.short) MODES.short = saved.short * 60;
+          if (saved.long)  MODES.long  = saved.long * 60;
+        }
+      } catch(e) {}
+      
+      document.getElementById('lbl-focus').textContent = Math.round(MODES.focus / 60);
+      document.getElementById('lbl-short').textContent = Math.round(MODES.short / 60);
+      document.getElementById('lbl-long').textContent  = Math.round(MODES.long / 60);
+    }
+    
+    function openPomoSettings(e) {
+      if(e) e.preventDefault();
+      document.getElementById('inp-focus').value = Math.round(MODES.focus / 60);
+      document.getElementById('inp-short').value = Math.round(MODES.short / 60);
+      document.getElementById('inp-long').value  = Math.round(MODES.long / 60);
+      document.getElementById('pomo-modal').classList.add('show');
+    }
+    
+    function closePomoSettings(e) {
+      if (e && e.target.id !== 'pomo-modal') return;
+      document.getElementById('pomo-modal').classList.remove('show');
+    }
+    
+    function savePomoSettings() {
+      const f = parseInt(document.getElementById('inp-focus').value) || 25;
+      const s = parseInt(document.getElementById('inp-short').value) || 5;
+      const l = parseInt(document.getElementById('inp-long').value) || 15;
+      
+      localStorage.setItem('toeic_pomo_settings', JSON.stringify({ focus: f, short: s, long: l }));
+      loadPomoSettings();
+      closePomoSettings();
+      
+      // Reset timer if not running
+      if (!isRunning) {
+        timeLeft = MODES[currentMode];
+        updateTimerDisplay();
+      }
+      showToast('Đã lưu cài đặt Pomodoro', 'success');
+    }
     
     let currentMode = 'focus';
     let timeLeft = MODES[currentMode];
@@ -371,6 +464,8 @@
     }
 
     // Initialize
+    loadPomoSettings();
+    timeLeft = MODES[currentMode];
     updateTimerDisplay();
     loadTodos();
   </script>
