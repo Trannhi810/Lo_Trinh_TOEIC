@@ -684,9 +684,20 @@ function init() {
 }
 
 function loadStorage() {
-  try { customCards = JSON.parse(localStorage.getItem('fc_custom') || '[]'); } catch(e) { customCards = []; }
-  try { knownSet   = new Set(JSON.parse(localStorage.getItem('fc_known') || '[]')); } catch(e) { knownSet = new Set(); }
-  try { unknownSet = new Set(JSON.parse(localStorage.getItem('fc_unknown') || '[]')); } catch(e) { unknownSet = new Set(); }
+  try { 
+    let c = JSON.parse(localStorage.getItem('fc_custom') || '[]'); 
+    customCards = Array.isArray(c) ? c.filter(x => x && typeof x === 'object') : []; 
+  } catch(e) { customCards = []; }
+  
+  try { 
+    let k = JSON.parse(localStorage.getItem('fc_known') || '[]'); 
+    knownSet = new Set(Array.isArray(k) ? k : []); 
+  } catch(e) { knownSet = new Set(); }
+  
+  try { 
+    let u = JSON.parse(localStorage.getItem('fc_unknown') || '[]'); 
+    unknownSet = new Set(Array.isArray(u) ? u : []); 
+  } catch(e) { unknownSet = new Set(); }
 }
 function saveCustom()   { localStorage.setItem('fc_custom',  JSON.stringify(customCards)); }
 function saveProgress() {
@@ -979,7 +990,7 @@ function renderCardList() {
   const list = document.getElementById('card-list');
   if (!list) return;
   const toShow = allCards.filter(c => {
-    const matchQ = !q || c.word.toLowerCase().includes(q) || (c.meaning || '').toLowerCase().includes(q) || (c.topic || '').toLowerCase().includes(q);
+    const matchQ = !q || (c.word || '').toLowerCase().includes(q) || (c.meaning || '').toLowerCase().includes(q) || (c.topic || '').toLowerCase().includes(q);
     const matchT = topF === 'all' || (c.topic || '') === topF;
     return matchQ && matchT;
   });
@@ -1003,7 +1014,7 @@ function renderCardList() {
 function switchMode(mode) {
   currentMode = mode;
   ['flashcard','quiz','manage'].forEach(m => {
-    document.getElementById(`panel-${m}`).style.display = m === mode ? '' : 'none';
+    document.getElementById(`panel-${m}`).style.display = m === mode ? 'block' : 'none';
   });
   const tabMap = { flashcard:'tab-fc', quiz:'tab-quiz', manage:'tab-manage' };
   Object.keys(tabMap).forEach(m => {
