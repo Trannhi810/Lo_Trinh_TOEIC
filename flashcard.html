@@ -75,10 +75,9 @@
       padding: 0 28px;
       height: 60px;
       display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      background: rgba(6,8,18,0.45);
-      backdrop-filter: blur(28px) saturate(1.8);
-      -webkit-backdrop-filter: blur(28px) saturate(1.8);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      background: transparent;
+      backdrop-filter: none;
     }
     .header-logo {
       display: flex; align-items: center; gap: 12px;
@@ -365,16 +364,18 @@
 
     /* WORD LIST PREVIEW */
     .word-list-preview {
-      background: rgba(10,12,28,0.60);
-      border: 1px solid rgba(99,102,241,0.14);
+      background: rgba(10,12,28,0.50);
+      border: 1px solid rgba(255,255,255,0.06);
       border-radius: 22px;
-      padding: 20px 22px;
+      padding: 0;
       margin-bottom: 24px;
       backdrop-filter: blur(20px);
+      overflow: hidden;
     }
     .wl-header {
       display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 14px;
+      padding: 16px 20px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
     }
     .wl-title {
       font-size: 13px; font-weight: 700; color: var(--text-muted);
@@ -385,22 +386,48 @@
       background: rgba(255,255,255,0.05); padding: 3px 10px; border-radius: 20px;
     }
     .wl-grid {
-      display: flex; flex-wrap: wrap; gap: 7px;
-      max-height: 180px; overflow-y: auto; padding-right: 4px;
+      max-height: 260px; overflow-y: auto; padding: 0;
     }
     .wl-grid::-webkit-scrollbar { width: 4px; }
-    .wl-grid::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 4px; }
-    .wl-chip {
-      display: inline-flex; align-items: center; gap: 5px;
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(99,102,241,0.12);
-      border-radius: 8px; padding: 5px 11px; cursor: pointer;
-      transition: all 0.2s; font-size: 13px; font-weight: 600; color: var(--text);
+    .wl-grid::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.25); border-radius: 4px; }
+    .wl-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      padding: 13px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      cursor: pointer;
+      transition: background 0.18s;
+      gap: 12px;
     }
-    .wl-chip:hover { background: rgba(99,102,241,0.14); border-color: rgba(99,102,241,0.4); transform: translateY(-1px); }
-    .wl-chip.is-known   { border-color: rgba(16,185,129,0.4);  background: rgba(16,185,129,0.08); }
-    .wl-chip.is-unknown { border-color: rgba(239,68,68,0.35);   background: rgba(239,68,68,0.07); }
-    .wl-chip.is-current { border-color: var(--primary); background: rgba(99,102,241,0.2); box-shadow: 0 0 10px rgba(99,102,241,0.3); }
-    .wl-chip-meaning { font-size: 11px; color: var(--text-dim); font-weight: 400; }
+    .wl-row:last-child { border-bottom: none; }
+    .wl-row:hover { background: rgba(99,102,241,0.08); }
+    .wl-row.is-current { background: rgba(99,102,241,0.15); }
+    .wl-row.is-known { border-left: 3px solid rgba(16,185,129,0.7); }
+    .wl-row.is-unknown { border-left: 3px solid rgba(239,68,68,0.6); }
+    .wl-left { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .wl-word {
+      font-size: 14px; font-weight: 700; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .wl-row.is-current .wl-word { color: #a5b4fc; }
+    .wl-meta {
+      font-size: 11px; color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .wl-right { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .wl-meaning {
+      font-size: 14px; font-weight: 600; color: var(--text-muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .wl-status-dot {
+      display: inline-block; width: 7px; height: 7px;
+      border-radius: 50%; margin-right: 4px; flex-shrink: 0;
+    }
+    .dot-known   { background: #10b981; }
+    .dot-unknown { background: #ef4444; }
+    .dot-neutral { background: rgba(255,255,255,0.18); }
 
     /* PANEL: QUIZ & MANAGE */
     .panel-box {
@@ -1029,17 +1056,29 @@ function renderWordListPreview() {
   if (!grid) return;
   countEl.textContent = deck.length + ' từ';
   if (!deck.length) {
-    grid.innerHTML = `<span style="color:var(--text-dim);font-size:13px;">Không có từ nào phù hợp bộ lọc</span>`;
+    grid.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-dim);font-size:13px;">Không có từ nào phù hợp bộ lọc</div>`;
     return;
   }
   grid.innerHTML = deck.map((c, i) => {
-    let cls = 'wl-chip';
-    if (i === currentIndex) cls += ' is-current';
-    else if (knownSet.has(c.id)) cls += ' is-known';
-    else if (unknownSet.has(c.id)) cls += ' is-unknown';
-    return `<span class="${cls}" onclick="jumpToCard(${i})" title="${c.meaning || ''}">${c.word}<span class="wl-chip-meaning">${c.meaning ? '· ' + c.meaning : ''}</span></span>`;
+    let cls = 'wl-row';
+    let dotCls = 'wl-status-dot dot-neutral';
+    if (i === currentIndex) { cls += ' is-current'; dotCls = 'wl-status-dot dot-neutral'; }
+    if (knownSet.has(c.id))   { cls += ' is-known';   dotCls = 'wl-status-dot dot-known'; }
+    else if (unknownSet.has(c.id)) { cls += ' is-unknown'; dotCls = 'wl-status-dot dot-unknown'; }
+    const meta = [c.pos, c.ipa].filter(Boolean).join(' · ');
+    return `
+      <div class="${cls}" onclick="jumpToCard(${i})">
+        <div class="wl-left">
+          <span class="wl-word"><span class="${dotCls}"></span>${c.word}</span>
+          ${meta ? `<span class="wl-meta">${meta}</span>` : ''}
+        </div>
+        <div class="wl-right">
+          <span class="wl-meaning">${c.meaning || '—'}</span>
+        </div>
+      </div>`;
   }).join('');
 }
+
 
 function updateStats() {
   buildAllCards();
