@@ -201,7 +201,34 @@
       width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--card-border);
       background: var(--bg3); color: var(--text); font-family: 'Inter'; outline: none;
     }
-    .pomo-modal-btns { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+    /* YOUTUBE LINK MANAGER */
+    .yt-panel { grid-column: 1 / -1; }
+    .yt-form { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; margin-bottom: 24px; }
+    @media (max-width: 600px) { .yt-form { grid-template-columns: 1fr; } }
+    .yt-input {
+      padding: 12px 16px; border-radius: 12px; border: 1px solid var(--card-border);
+      background: var(--bg3); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; outline: none; transition: var(--transition);
+    }
+    .yt-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+    .yt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .yt-card {
+      background: var(--bg3); border: 1px solid var(--card-border); border-radius: 14px;
+      overflow: hidden; display: flex; flex-direction: column; transition: var(--transition);
+    }
+    .yt-card:hover { transform: translateY(-2px); border-color: rgba(99,102,241,0.4); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+    .yt-thumb-wrap { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden; }
+    .yt-thumb { width: 100%; height: 100%; object-fit: cover; }
+    .yt-play-btn {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.4); color: #fff; font-size: 32px; text-decoration: none;
+      transition: var(--transition);
+    }
+    .yt-card:hover .yt-play-btn { background: rgba(239,68,68,0.7); }
+    .yt-info { padding: 14px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+    .yt-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; line-height: 1.4; }
+    .yt-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+    .yt-link-btn { font-size: 12px; color: var(--primary-light); text-decoration: none; font-weight: 500; }
+    .yt-link-btn:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -247,6 +274,17 @@
         <button type="submit" class="todo-add">Thêm</button>
       </form>
       <div class="todo-list" id="todo-list"></div>
+    </div>
+
+    <!-- YOUTUBE LINK MANAGER -->
+    <div class="panel-box yt-panel">
+      <div class="panel-title">📺 Kho Link YouTube Học TOEIC</div>
+      <form class="yt-form" onsubmit="addYoutubeLink(event)">
+        <input type="text" id="yt-title" class="yt-input" placeholder="Tiêu đề video / Bài học..." required />
+        <input type="url" id="yt-url" class="yt-input" placeholder="Dán link YouTube tại đây (https://youtube.com/watch?...)..." required />
+        <button type="submit" class="todo-add">Lưu Link</button>
+      </form>
+      <div class="yt-grid" id="yt-grid"></div>
     </div>
   </main>
 
@@ -415,6 +453,7 @@
 
     function saveTodos() {
       localStorage.setItem('toeic_todos', JSON.stringify(todos));
+      if (window.FirebaseSync) window.FirebaseSync.saveData('todos', todos);
     }
 
     function renderTodos() {
@@ -457,6 +496,86 @@
       renderTodos();
     }
 
+    // ==========================================
+    // YOUTUBE LINK LOGIC
+    // ==========================================
+    let youtubeLinks = [];
+
+    function loadYoutubeLinks() {
+      try {
+        const stored = localStorage.getItem('toeic_yt_links');
+        if (stored) youtubeLinks = JSON.parse(stored);
+        if (!Array.isArray(youtubeLinks)) youtubeLinks = [];
+      } catch (e) {
+        youtubeLinks = [];
+      }
+      renderYoutubeLinks();
+    }
+
+    function saveYoutubeLinks() {
+      localStorage.setItem('toeic_yt_links', JSON.stringify(youtubeLinks));
+      if (window.FirebaseSync) window.FirebaseSync.saveData('youtubeLinks', youtubeLinks);
+    }
+
+    function extractYoutubeId(url) {
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+      const match = url.match(regExp);
+      return (match && match[2].length === 11) ? match[2] : null;
+    }
+
+    function renderYoutubeLinks() {
+      const grid = document.getElementById('yt-grid');
+      if (youtubeLinks.length === 0) {
+        grid.innerHTML = '<div class="empty-todo" style="grid-column: 1/-1;">Chưa có video nào. Lưu link YouTube để học lại nhé!</div>';
+        return;
+      }
+
+      grid.innerHTML = youtubeLinks.map((item, idx) => {
+        const ytid = extractYoutubeId(item.url);
+        const thumbUrl = ytid ? `https://img.youtube.com/vi/${ytid}/mqdefault.jpg` : '';
+        return `
+          <div class="yt-card">
+            ${ytid ? `
+              <div class="yt-thumb-wrap">
+                <img class="yt-thumb" src="${thumbUrl}" alt="${item.title}" />
+                <a href="${item.url}" target="_blank" class="yt-play-btn" title="Xem trên YouTube">▶</a>
+              </div>
+            ` : ''}
+            <div class="yt-info">
+              <div class="yt-title">${item.title}</div>
+              <div class="yt-actions">
+                <a href="${item.url}" target="_blank" class="yt-link-btn">🔗 Mở Link YouTube</a>
+                <button class="todo-del" onclick="deleteYoutubeLink(${idx})" title="Xóa">✕</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function addYoutubeLink(e) {
+      e.preventDefault();
+      const titleInput = document.getElementById('yt-title');
+      const urlInput = document.getElementById('yt-url');
+      const title = titleInput.value.trim();
+      const url = urlInput.value.trim();
+      if (!title || !url) return;
+
+      youtubeLinks.push({ title, url, id: Date.now() });
+      saveYoutubeLinks();
+      renderYoutubeLinks();
+      titleInput.value = '';
+      urlInput.value = '';
+      showToast('📺 Đã lưu link YouTube thành công!', 'success');
+    }
+
+    function deleteYoutubeLink(idx) {
+      youtubeLinks.splice(idx, 1);
+      saveYoutubeLinks();
+      renderYoutubeLinks();
+      showToast('🗑️ Đã xóa link YouTube', 'success');
+    }
+
     function showToast(msg, type='success') {
       const wrap = document.getElementById('toast-wrap');
       const t = document.createElement('div');
@@ -471,7 +590,33 @@
     timeLeft = MODES[currentMode];
     updateTimerDisplay();
     loadTodos();
+    loadYoutubeLinks();
+
+    // LISTEN TO FIREBASE REAL-TIME SYNC
+    if (window.FirebaseSync) {
+      window.FirebaseSync.onSync(data => {
+        if (data) {
+          let todoChanged = false;
+          let ytChanged = false;
+          if (data.todos && JSON.stringify(data.todos) !== JSON.stringify(todos)) {
+            todos = data.todos || [];
+            localStorage.setItem('toeic_todos', JSON.stringify(todos));
+            todoChanged = true;
+          }
+          if (data.youtubeLinks && JSON.stringify(data.youtubeLinks) !== JSON.stringify(youtubeLinks)) {
+            youtubeLinks = data.youtubeLinks || [];
+            localStorage.setItem('toeic_yt_links', JSON.stringify(youtubeLinks));
+            ytChanged = true;
+          }
+          if (todoChanged) renderTodos();
+          if (ytChanged) renderYoutubeLinks();
+        }
+      });
+    }
   </script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
   <script src="bg.js"></script>
 </body>
 </html>

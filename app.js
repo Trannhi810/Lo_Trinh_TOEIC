@@ -31,6 +31,28 @@ document.addEventListener('DOMContentLoaded', () => {
   updateGlobalProgress();
   handleScroll();
   window.addEventListener('scroll', handleScroll);
+
+  if (window.FirebaseSync) {
+    window.FirebaseSync.onSync(data => {
+      if (data) {
+        let changed = false;
+        if (data.checkedDays && JSON.stringify(data.checkedDays) !== JSON.stringify(checkedDays)) {
+          checkedDays = data.checkedDays || {};
+          localStorage.setItem('toeic_done', JSON.stringify(checkedDays));
+          changed = true;
+        }
+        if (data.subChecked && JSON.stringify(data.subChecked) !== JSON.stringify(subChecked)) {
+          subChecked = data.subChecked || {};
+          localStorage.setItem('toeic_sub', JSON.stringify(subChecked));
+          changed = true;
+        }
+        if (changed) {
+          filterRoadmap();
+          updateGlobalProgress();
+        }
+      }
+    });
+  }
 });
 
 // ===== TAB =====
@@ -253,6 +275,7 @@ function toggleSub(e, day, key) {
   if (!subChecked[day][key]) delete subChecked[day][key];
   if (Object.keys(subChecked[day]).length === 0) delete subChecked[day];
   localStorage.setItem('toeic_sub', JSON.stringify(subChecked));
+  if (window.FirebaseSync) window.FirebaseSync.saveData('subChecked', subChecked);
 
   // update UI for this sub item
   const scb = document.getElementById('scb-' + day + '-' + key);
@@ -353,6 +376,7 @@ function toggleDone(e, day) {
   checkedDays[day] = !isDone;
   if (!checkedDays[day]) delete checkedDays[day];
   localStorage.setItem('toeic_done', JSON.stringify(checkedDays));
+  if (window.FirebaseSync) window.FirebaseSync.saveData('checkedDays', checkedDays);
 
   const newDone = !!checkedDays[day];
   const cb = document.getElementById('cb-' + day);

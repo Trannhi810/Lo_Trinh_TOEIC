@@ -721,6 +721,40 @@ function init() {
   applyFilters();
   updateStats();
   switchMode('flashcard'); // hiện panel đầu tiên
+
+  if (window.FirebaseSync) {
+    window.FirebaseSync.onSync(data => {
+      if (data) {
+        let changed = false;
+        if (data.customCards && JSON.stringify(data.customCards) !== JSON.stringify(customCards)) {
+          customCards = data.customCards || [];
+          localStorage.setItem('fc_custom', JSON.stringify(customCards));
+          changed = true;
+        }
+        if (data.knownCards && JSON.stringify(data.knownCards) !== JSON.stringify([...knownSet])) {
+          knownSet = new Set(data.knownCards);
+          localStorage.setItem('fc_known', JSON.stringify(data.knownCards));
+          changed = true;
+        }
+        if (data.unknownCards && JSON.stringify(data.unknownCards) !== JSON.stringify([...unknownSet])) {
+          unknownSet = new Set(data.unknownCards);
+          localStorage.setItem('fc_unknown', JSON.stringify(data.unknownCards));
+          changed = true;
+        }
+        if (data.deletedCards && JSON.stringify(data.deletedCards) !== JSON.stringify([...deletedSet])) {
+          deletedSet = new Set(data.deletedCards);
+          localStorage.setItem('fc_deleted', JSON.stringify(data.deletedCards));
+          changed = true;
+        }
+        if (changed) {
+          buildAllCards();
+          applyFilters();
+          updateStats();
+          if (currentMode === 'manage') renderCardList();
+        }
+      }
+    });
+  }
 }
 
 function loadStorage() {
@@ -744,11 +778,19 @@ function loadStorage() {
     deletedSet = new Set(Array.isArray(d) ? d : []); 
   } catch(e) { deletedSet = new Set(); }
 }
-function saveCustom()   { localStorage.setItem('fc_custom',  JSON.stringify(customCards)); }
+function saveCustom()   {
+  localStorage.setItem('fc_custom',  JSON.stringify(customCards));
+  if (window.FirebaseSync) window.FirebaseSync.saveData('customCards', customCards);
+}
 function saveProgress() {
   localStorage.setItem('fc_known',   JSON.stringify([...knownSet]));
   localStorage.setItem('fc_unknown', JSON.stringify([...unknownSet]));
   localStorage.setItem('fc_deleted', JSON.stringify([...deletedSet]));
+  if (window.FirebaseSync) {
+    window.FirebaseSync.saveData('knownCards', [...knownSet]);
+    window.FirebaseSync.saveData('unknownCards', [...unknownSet]);
+    window.FirebaseSync.saveData('deletedCards', [...deletedSet]);
+  }
 }
 
 function buildAllCards() {
@@ -1112,6 +1154,9 @@ document.getElementById('flip-card').addEventListener('keydown', e => {
 // ===== BOOT =====
 init();
 </script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script src="bg.js"></script>
 </body>
 </html>
