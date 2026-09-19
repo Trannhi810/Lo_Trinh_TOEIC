@@ -71,12 +71,14 @@
 
     /* HEADER */
     .header {
-      position: relative; z-index: 10;
-      padding: 18px 32px;
+      position: sticky; top: 0; z-index: 100;
+      padding: 0 28px;
+      height: 60px;
       display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      background: rgba(11,13,23,0.85);
-      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      background: rgba(6,8,18,0.45);
+      backdrop-filter: blur(28px) saturate(1.8);
+      -webkit-backdrop-filter: blur(28px) saturate(1.8);
     }
     .header-logo {
       display: flex; align-items: center; gap: 12px;
@@ -138,12 +140,12 @@
     /* MODE TABS */
     .mode-tabs {
       display: flex; gap: 6px;
-      background: var(--bg2);
-      border: 1px solid var(--card-border);
-      border-radius: 14px;
+      background: rgba(10,12,28,0.65);
+      border: 1px solid rgba(99,102,241,0.15);
+      border-radius: 18px;
       padding: 6px;
       margin-bottom: 24px;
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(20px);
     }
     .mode-tab {
       flex: 1; padding: 11px 16px;
@@ -167,11 +169,11 @@
       gap: 12px; margin-bottom: 22px;
     }
     .stat-pill {
-      background: var(--bg2);
-      border: 1px solid var(--card-border);
-      border-radius: var(--radius-sm);
+      background: rgba(10,12,28,0.60);
+      border: 1px solid rgba(99,102,241,0.14);
+      border-radius: 16px;
       padding: 12px 16px; text-align: center;
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(20px);
     }
     .stat-pill .num {
       font-size: 22px; font-weight: 800;
@@ -361,12 +363,52 @@
     .empty-state { text-align: center; padding: 60px 24px; color: var(--text-muted); }
     .empty-icon  { font-size: 56px; margin-bottom: 12px; }
 
+    /* WORD LIST PREVIEW */
+    .word-list-preview {
+      background: rgba(10,12,28,0.60);
+      border: 1px solid rgba(99,102,241,0.14);
+      border-radius: 22px;
+      padding: 20px 22px;
+      margin-bottom: 24px;
+      backdrop-filter: blur(20px);
+    }
+    .wl-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .wl-title {
+      font-size: 13px; font-weight: 700; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.07em;
+    }
+    .wl-count {
+      font-size: 12px; color: var(--text-dim);
+      background: rgba(255,255,255,0.05); padding: 3px 10px; border-radius: 20px;
+    }
+    .wl-grid {
+      display: flex; flex-wrap: wrap; gap: 7px;
+      max-height: 180px; overflow-y: auto; padding-right: 4px;
+    }
+    .wl-grid::-webkit-scrollbar { width: 4px; }
+    .wl-grid::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 4px; }
+    .wl-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(99,102,241,0.12);
+      border-radius: 8px; padding: 5px 11px; cursor: pointer;
+      transition: all 0.2s; font-size: 13px; font-weight: 600; color: var(--text);
+    }
+    .wl-chip:hover { background: rgba(99,102,241,0.14); border-color: rgba(99,102,241,0.4); transform: translateY(-1px); }
+    .wl-chip.is-known   { border-color: rgba(16,185,129,0.4);  background: rgba(16,185,129,0.08); }
+    .wl-chip.is-unknown { border-color: rgba(239,68,68,0.35);   background: rgba(239,68,68,0.07); }
+    .wl-chip.is-current { border-color: var(--primary); background: rgba(99,102,241,0.2); box-shadow: 0 0 10px rgba(99,102,241,0.3); }
+    .wl-chip-meaning { font-size: 11px; color: var(--text-dim); font-weight: 400; }
+
     /* PANEL: QUIZ & MANAGE */
     .panel-box {
-      background: var(--bg2); border: 1px solid var(--card-border);
-      border-radius: 24px; padding: 32px;
+      background: rgba(10,12,28,0.65);
+      border: 1px solid rgba(99,102,241,0.14);
+      border-radius: 26px; padding: 32px;
       box-shadow: var(--shadow);
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(20px);
     }
 
     /* QUIZ */
@@ -557,6 +599,15 @@
   <div class="progress-wrap">
     <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
     <span class="progress-label" id="prog-label">0 / 0</span>
+  </div>
+
+  <!-- WORD LIST PREVIEW -->
+  <div class="word-list-preview" id="word-list-preview">
+    <div class="wl-header">
+      <span class="wl-title">📋 Xem trước từ vựng</span>
+      <span class="wl-count" id="wl-count">0 từ</span>
+    </div>
+    <div class="wl-grid" id="wl-grid"></div>
   </div>
 
   <!-- FLASHCARD PANEL -->
@@ -840,6 +891,7 @@ function applyFilters() {
   renderCard();
   updateProgress();
   renderCardList();
+  renderWordListPreview();
   document.getElementById('deck-done').classList.remove('show');
   const fcArea = document.getElementById('fc-area');
   if (fcArea) fcArea.style.display = '';
@@ -917,7 +969,7 @@ function markCard(known) {
   const c = deck[currentIndex];
   if (known) { knownSet.add(c.id); unknownSet.delete(c.id); showToast('✅ Đã ghi nhớ!', 'success'); }
   else        { unknownSet.add(c.id); knownSet.delete(c.id); showToast('❌ Ghi lại để ôn tiếp!', 'error'); }
-  saveProgress(); updateStats(); renderCard();
+  saveProgress(); updateStats(); renderCard(); renderWordListPreview();
   setTimeout(() => {
     if (currentIndex < deck.length - 1) nextCard();
     else showDone();
@@ -929,6 +981,7 @@ function showDone() {
   document.getElementById('done-summary').textContent = `✅ Đã biết: ${known} thẻ  |  ❓ Chưa biết: ${deck.length - known} thẻ`;
   document.getElementById('fc-area').style.display = 'none';
   document.getElementById('deck-done').classList.add('show');
+  renderWordListPreview();
 }
 
 function restartDeck() {
@@ -959,12 +1012,33 @@ function updateProgress() {
   if (!deck.length) {
     document.getElementById('prog-fill').style.width = '0%';
     document.getElementById('prog-label').textContent = '0 / 0';
+    renderWordListPreview();
     return;
   }
   const seen = currentIndex + 1;
   const pct  = Math.round((seen / deck.length) * 100);
   document.getElementById('prog-fill').style.width = pct + '%';
   document.getElementById('prog-label').textContent = `${seen} / ${deck.length}`;
+  renderWordListPreview();
+}
+
+// ===== WORD LIST PREVIEW =====
+function renderWordListPreview() {
+  const grid = document.getElementById('wl-grid');
+  const countEl = document.getElementById('wl-count');
+  if (!grid) return;
+  countEl.textContent = deck.length + ' từ';
+  if (!deck.length) {
+    grid.innerHTML = `<span style="color:var(--text-dim);font-size:13px;">Không có từ nào phù hợp bộ lọc</span>`;
+    return;
+  }
+  grid.innerHTML = deck.map((c, i) => {
+    let cls = 'wl-chip';
+    if (i === currentIndex) cls += ' is-current';
+    else if (knownSet.has(c.id)) cls += ' is-known';
+    else if (unknownSet.has(c.id)) cls += ' is-unknown';
+    return `<span class="${cls}" onclick="jumpToCard(${i})" title="${c.meaning || ''}">${c.word}<span class="wl-chip-meaning">${c.meaning ? '· ' + c.meaning : ''}</span></span>`;
+  }).join('');
 }
 
 function updateStats() {
@@ -1135,6 +1209,19 @@ function showToast(msg, type='success') {
   t.textContent = msg;
   wrap.appendChild(t);
   setTimeout(() => { if (wrap.contains(t)) wrap.removeChild(t); }, 3000);
+}
+
+// ===== JUMP TO CARD =====
+function jumpToCard(index) {
+  if (index < 0 || index >= deck.length) return;
+  currentIndex = index;
+  document.getElementById('flip-card').classList.remove('flipped');
+  document.getElementById('deck-done').classList.remove('show');
+  document.getElementById('fc-area').style.display = '';
+  if (currentMode !== 'flashcard') switchMode('flashcard');
+  renderCard(); updateProgress();
+  // scroll card into view
+  document.querySelector('.card-area')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 // ===== KEYBOARD =====
