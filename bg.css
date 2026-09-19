@@ -2,9 +2,9 @@
 #global-bg-container {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: -2;
   pointer-events: none;
-  background-color: var(--bg);
+  background-color: #060816;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -17,7 +17,6 @@
   width: 100vw;
   height: 100vh;
   transform: translate(-50%, -50%);
-  /* To ensure no black bars for 16:9 video */
   pointer-events: none;
 }
 @media (min-aspect-ratio: 16/9) {
