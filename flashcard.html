@@ -915,26 +915,44 @@ function init() {
     window.FirebaseSync.onSync(data => {
       if (data) {
         let changed = false;
-        if (data.customCards && JSON.stringify(data.customCards) !== JSON.stringify(customCards)) {
-          customCards = data.customCards || [];
-          localStorage.setItem('fc_custom', JSON.stringify(customCards));
-          changed = true;
+
+        // Dùng 'field' in data để phát hiện field dù mảng rỗng
+        if ('customCards' in data) {
+          const incoming = Array.isArray(data.customCards) ? data.customCards : [];
+          if (JSON.stringify(incoming) !== JSON.stringify(customCards)) {
+            customCards = incoming;
+            localStorage.setItem('fc_custom', JSON.stringify(customCards));
+            changed = true;
+          }
         }
-        if (data.knownCards && JSON.stringify(data.knownCards) !== JSON.stringify([...knownSet])) {
-          knownSet = new Set(data.knownCards);
-          localStorage.setItem('fc_known', JSON.stringify(data.knownCards));
-          changed = true;
+        if ('knownCards' in data) {
+          const incoming = Array.isArray(data.knownCards) ? data.knownCards : [];
+          const current  = [...knownSet];
+          if (JSON.stringify(incoming) !== JSON.stringify(current)) {
+            knownSet = new Set(incoming);
+            localStorage.setItem('fc_known', JSON.stringify(incoming));
+            changed = true;
+          }
         }
-        if (data.unknownCards && JSON.stringify(data.unknownCards) !== JSON.stringify([...unknownSet])) {
-          unknownSet = new Set(data.unknownCards);
-          localStorage.setItem('fc_unknown', JSON.stringify(data.unknownCards));
-          changed = true;
+        if ('unknownCards' in data) {
+          const incoming = Array.isArray(data.unknownCards) ? data.unknownCards : [];
+          const current  = [...unknownSet];
+          if (JSON.stringify(incoming) !== JSON.stringify(current)) {
+            unknownSet = new Set(incoming);
+            localStorage.setItem('fc_unknown', JSON.stringify(incoming));
+            changed = true;
+          }
         }
-        if (data.deletedCards && JSON.stringify(data.deletedCards) !== JSON.stringify([...deletedSet])) {
-          deletedSet = new Set(data.deletedCards);
-          localStorage.setItem('fc_deleted', JSON.stringify(data.deletedCards));
-          changed = true;
+        if ('deletedCards' in data) {
+          const incoming = Array.isArray(data.deletedCards) ? data.deletedCards : [];
+          const current  = [...deletedSet];
+          if (JSON.stringify(incoming) !== JSON.stringify(current)) {
+            deletedSet = new Set(incoming);
+            localStorage.setItem('fc_deleted', JSON.stringify(incoming));
+            changed = true;
+          }
         }
+
         if (changed) {
           buildAllCards();
           applyFilters();
