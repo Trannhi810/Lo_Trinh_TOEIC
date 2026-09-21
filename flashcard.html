@@ -651,11 +651,47 @@
   </nav>
 </header>
 
+<!-- ===== FULLSCREEN OVERLAY ===== -->
+<div class="fc-fullscreen-overlay" id="fc-fullscreen-overlay" role="dialog" aria-modal="true" aria-label="Flashcard toàn màn hình">
+  <div class="fc-fs-header">
+    <span class="fc-fs-info" id="fc-fs-info">🃏 Flashcard — Toàn màn hình</span>
+    <button class="fc-fs-close" id="fc-fs-close" onclick="closeFullscreen()" title="Đóng toàn màn hình (Esc)">✕</button>
+  </div>
+  <div class="fc-fs-progress">
+    <div class="progress-track"><div class="progress-fill" id="fs-prog-fill" style="width:0%"></div></div>
+  </div>
+  <div class="fc-fs-card">
+    <div class="flip-wrapper" id="fs-flip-card" onclick="fsFlipCard()" role="button" tabindex="0" title="Click để lật thẻ">
+      <div class="flip-inner" id="fs-flip-inner">
+        <div class="flip-front">
+          <span class="card-type-badge badge-vocab" id="fs-badge">VOCAB</span>
+          <span class="hint-label">👆 Click để lật</span>
+          <div class="card-word" id="fs-word">—</div>
+          <div class="card-ipa"  id="fs-ipa"></div>
+          <div class="card-pos"  id="fs-pos"></div>
+        </div>
+        <div class="flip-back">
+          <span class="card-type-badge badge-vocab" id="fs-badge-b">VOCAB</span>
+          <div class="card-meaning" id="fs-meaning">—</div>
+          <div class="card-example" id="fs-example"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="fc-fs-nav">
+    <button class="ctrl-btn" onclick="fsPrev()" title="Thẻ trước (←)">← Trước</button>
+    <span class="fc-fs-counter" id="fs-counter">1 / 1</span>
+    <button class="ctrl-btn" onclick="fsNext()" title="Thẻ sau (→)">Sau →</button>
+  </div>
+  <div class="fc-fs-hint">← → : thẻ trước/sau &nbsp;|&nbsp; Space : lật thẻ &nbsp;|&nbsp; Esc : thoát</div>
+</div>
+
 <div class="shortcuts-hint">
   <strong>⌨️ Phím tắt</strong><br>
   ← / → : Thẻ trước/sau<br>
   Space / F : Lật thẻ<br>
-  K : Đã biết &nbsp; J : Chưa biết
+  K : Đã biết &nbsp; J : Chưa biết<br>
+  Shift+F : Toàn màn hình
 </div>
 
 <main class="main">
@@ -1054,6 +1090,8 @@ function renderCard() {
   const isUnknown = unknownSet.has(c.id);
   document.getElementById('btn-know').style.boxShadow    = isKnown   ? '0 0 0 3px #10b981' : '';
   document.getElementById('btn-dontknow').style.boxShadow = isUnknown ? '0 0 0 3px #ef4444' : '';
+  // keep fullscreen overlay in sync
+  if (typeof fsIsOpen !== 'undefined' && fsIsOpen) renderFsCard();
 }
 
 function flipCard() {
@@ -1342,10 +1380,115 @@ function jumpToCard(index) {
   document.querySelector('.card-area')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+// ===== FULLSCREEN MODE =====
+let fsIsOpen = false;
+
+function openFullscreen() {
+  if (!deck.length) { showToast('⚠️ Chưa có thẻ nào trong bộ thẻ!', 'error'); return; }
+  fsIsOpen = true;
+  const overlay = document.getElementById('fc-fullscreen-overlay');
+  overlay.classList.add('active');
+  // request native browser fullscreen
+  if (document.documentElement.requestFullscreen) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+  // update button
+  const btn = document.getElementById('fs-btn');
+  if (btn) { btn.textContent = '✕'; btn.title = 'Thoát toàn màn hình (Esc)'; btn.onclick = closeFullscreen; }
+  // render card at current index
+  renderFsCard();
+  // focus overlay for keyboard
+  overlay.focus && overlay.setAttribute('tabindex', '-1') && overlay.focus();
+}
+
+function closeFullscreen() {
+  fsIsOpen = false;
+  const overlay = document.getElementById('fc-fullscreen-overlay');
+  overlay.classList.remove('active');
+  // exit native fullscreen
+  if (document.fullscreenElement && document.exitFullscreen) {
+    document.exitFullscreen().catch(() => {});
+  }
+  // restore button
+  const btn = document.getElementById('fs-btn');
+  if (btn) { btn.textContent = '⛶'; btn.title = 'Toàn màn hình (Shift+F)'; btn.onclick = openFullscreen; }
+}
+
+// sync when browser Esc exits native fullscreen
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && fsIsOpen) {
+    closeFullscreen();
+  }
+});
+
+function renderFsCard() {
+  if (!deck.length) return;
+  const card = deck[currentIndex];
+  // reset flip
+  document.getElementById('fs-flip-card').classList.remove('flipped');
+  // front
+  const typeMap = { vocab:'VOCAB', grammar:'GRAMMAR', custom:'CUSTOM' };
+  const badgeCls = { vocab:'badge-vocab', grammar:'badge-grammar', custom:'badge-custom' };
+  const badge = typeMap[card.type] || 'VOCAB';
+  const badgeClass = badgeCls[card.type] || 'badge-vocab';
+  const badgeEl = document.getElementById('fs-badge');
+  const badgeElB = document.getElementById('fs-badge-b');
+  if (badgeEl) { badgeEl.textContent = badge; badgeEl.className = 'card-type-badge ' + badgeClass; }
+  if (badgeElB) { badgeElB.textContent = badge; badgeElB.className = 'card-type-badge ' + badgeClass; }
+  const wordEl = document.getElementById('fs-word');
+  const ipaEl  = document.getElementById('fs-ipa');
+  const posEl  = document.getElementById('fs-pos');
+  if (wordEl) wordEl.textContent = card.word || '—';
+  if (ipaEl)  ipaEl.textContent  = card.ipa  || '';
+  if (posEl)  posEl.textContent  = card.pos  || '';
+  // back
+  const meanEl = document.getElementById('fs-meaning');
+  const exEl   = document.getElementById('fs-example');
+  if (meanEl) meanEl.textContent = card.meaning || '—';
+  if (exEl)   exEl.innerHTML    = card.example  || '';
+  // counter
+  const cnt = document.getElementById('fs-counter');
+  if (cnt) cnt.textContent = (currentIndex + 1) + ' / ' + deck.length;
+  // progress bar
+  const fill = document.getElementById('fs-prog-fill');
+  if (fill) fill.style.width = Math.round((currentIndex + 1) / deck.length * 100) + '%';
+}
+
+function fsFlipCard() {
+  document.getElementById('fs-flip-card').classList.toggle('flipped');
+}
+
+function fsNext() {
+  if (currentIndex < deck.length - 1) {
+    currentIndex++;
+    renderCard();   // keep main card in sync
+    renderFsCard();
+  }
+}
+
+function fsPrev() {
+  if (currentIndex > 0) {
+    currentIndex--;
+    renderCard();
+    renderFsCard();
+  }
+}
+
 // ===== KEYBOARD =====
 document.addEventListener('keydown', e => {
+  // Fullscreen overlay shortcuts
+  if (fsIsOpen) {
+    if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
+    if (e.key === 'Escape')                              { closeFullscreen(); return; }
+    if (e.key === 'ArrowRight' || e.key === 'd')         { fsNext(); return; }
+    if (e.key === 'ArrowLeft'  || e.key === 'a')         { fsPrev(); return; }
+    if (e.key === ' ' || e.key === 'f') { e.preventDefault(); fsFlipCard(); return; }
+    return;
+  }
+  // Normal mode
   if (currentMode !== 'flashcard') return;
   if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
+  if (e.shiftKey && (e.key === 'F' || e.key === 'f'))  { e.preventDefault(); openFullscreen(); return; }
   if (e.key === 'ArrowRight' || e.key === 'd') nextCard();
   if (e.key === 'ArrowLeft'  || e.key === 'a') prevCard();
   if (e.key === ' ' || e.key === 'f') { e.preventDefault(); flipCard(); }
